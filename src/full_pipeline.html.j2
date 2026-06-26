@@ -1,0 +1,35 @@
+{# full_pipeline.html.j2 — Uitgebreide wiki specifiek voor pipeline-nodes #}
+<h2>🔄 {{ label }}</h2>
+<p>{{ attrs.description | default('Geen beschrijving beschikbaar.') }}</p>
+
+<h3>Pipeline-status</h3>
+<table>
+  <tr><th>Eigenschap</th><th>Waarde</th></tr>
+  <tr>
+    <td>Status</td>
+    <td>{% if attrs.status == 'actief' %}✅ Actief{% else %}⏸️ {{ attrs.status | capitalize }}{% endif %}</td>
+  </tr>
+  <tr><td>Eigenaar</td><td>{{ attrs.owner | default('—') }}</td></tr>
+  <tr><td>Gewicht</td><td>{{ attrs.weight | default('—') }}</td></tr>
+</table>
+
+<h3>Datastromen</h3>
+<table>
+  <tr><th>Richting</th><th>Aantal</th></tr>
+  <tr><td>⬅️ Bronnen (inkomend)</td><td>{{ n_in }}</td></tr>
+  <tr><td>➡️ Targets (uitgaand)</td><td>{{ n_out }}</td></tr>
+</table>
+
+{% if neighbours %}
+<h3>Verbonden nodes</h3>
+<ul>
+  {% for n in neighbours %}
+  <li>{{ n }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% if project is defined %}
+<h3>Project</h3>
+<p><span class="tag">{{ project }}</span></p>
+{% endif %}

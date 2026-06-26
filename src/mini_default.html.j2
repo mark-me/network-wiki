@@ -1,0 +1,42 @@
+{# mini_default.html.j2 — Compact sidepanel-wiki voor alle node-types #}
+<div class="mini-wiki">
+
+  <div class="node-type">{{ attrs.get('type', 'Node') | upper }}</div>
+
+  {% if attrs.description is defined and attrs.description %}
+  <div class="node-desc">{{ attrs.description }}</div>
+  {% endif %}
+
+  <div class="attr-grid">
+    {% if attrs.status is defined %}
+    <div class="attr-box">
+      <div class="attr-label">Status</div>
+      <div class="attr-value">
+        {% if attrs.status == 'actief' %}✅{% else %}⏸️{% endif %}
+        {{ attrs.status | capitalize }}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if attrs.owner is defined %}
+    <div class="attr-box">
+      <div class="attr-label">Eigenaar</div>
+      <div class="attr-value">{{ attrs.owner }}</div>
+    </div>
+    {% endif %}
+
+    <div class="attr-box">
+      <div class="attr-label">Inkomend</div>
+      <div class="attr-value">{{ n_in }}</div>
+    </div>
+    <div class="attr-box">
+      <div class="attr-label">Uitgaand</div>
+      <div class="attr-value">{{ n_out }}</div>
+    </div>
+  </div>
+
+  <div class="connections">
+    Verbonden met <strong>{{ n_in + n_out }}</strong> andere nodes
+  </div>
+
+</div>

@@ -1,0 +1,26 @@
+{# full_default.html.j2 — Volledige wiki voor nodes zonder specifiek type-template #}
+<h2>{{ label }}</h2>
+
+{% if attrs.description is defined and attrs.description %}
+<p>{{ attrs.description }}</p>
+{% endif %}
+
+<h3>Metadata</h3>
+<table>
+  <tr><th>Eigenschap</th><th>Waarde</th></tr>
+  {% for key, val in attrs.items() if key not in ('name', 'description') and val is not none %}
+  <tr>
+    <td>{{ key | replace('_', ' ') | capitalize }}</td>
+    <td>{{ val }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+{% if neighbours %}
+<h3>Verbonden nodes</h3>
+<ul>
+  {% for n in neighbours %}
+  <li>{{ n }}</li>
+  {% endfor %}
+</ul>
+{% endif %}

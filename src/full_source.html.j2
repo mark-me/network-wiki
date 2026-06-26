@@ -1,0 +1,26 @@
+{# full_source.html.j2 — Wiki specifiek voor bronsysteem-nodes #}
+<h2>📥 {{ label }}</h2>
+<p>{{ attrs.description | default('Geen beschrijving beschikbaar.') }}</p>
+
+<h3>Broninformatie</h3>
+<table>
+  <tr><th>Eigenschap</th><th>Waarde</th></tr>
+  <tr><td>Eigenaar</td><td>{{ attrs.owner | default('—') }}</td></tr>
+  <tr><td>Status</td><td>{{ attrs.status | default('—') | capitalize }}</td></tr>
+  {% if attrs.weight is defined %}
+  <tr><td>Gewicht</td><td>{{ attrs.weight }}</td></tr>
+  {% endif %}
+</table>
+
+{% if neighbours %}
+<h3>Levert aan</h3>
+<ul>
+  {% for n in neighbours %}
+  <li>➡️ {{ n }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% if project is defined %}
+<p><span class="tag">{{ project }}</span></p>
+{% endif %}

@@ -1,8 +1,8 @@
 """
 network-wiki
 ============
-Genereer interactieve standalone HTML graph-visualisaties met
-uitklapbare node-wiki's, Bootstrap 5 light/dark theming en Jinja2 templates.
+Generate interactive standalone HTML graph-visualizations with
+expandable node wikis, Bootstrap 5 light/dark theming and Jinja2 templates.
 
 Quickstart::
 

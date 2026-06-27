@@ -1,4 +1,4 @@
-"""Visuele stijl-dataclasses voor edges."""
+"""Visual style-dataclasses for edges."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import Any, Optional
 
 @dataclass
 class EdgeColor:
-    """Kleurinstelling voor een edge."""
+    """Color configuration for an edge."""
     color: str = "#848484"
     highlight: str = "#848484"
     hover: str = "#848484"
@@ -26,9 +26,9 @@ class EdgeColor:
 @dataclass
 class EdgeArrows:
     """
-    Pijlconfiguratie voor edges.
+    Arrow configuration for edges.
 
-    type-opties:
+    type-options:
         ``"arrow"`` | ``"bar"`` | ``"circle"`` | ``"box"`` | ``"crow"`` |
         ``"curve"`` | ``"diamond"`` | ``"inv_curve"`` | ``"inv_triangle"`` |
         ``"triangle"`` | ``"vee"``
@@ -59,9 +59,9 @@ class EdgeArrows:
 @dataclass
 class EdgeStyle:
     """
-    Alle visuele eigenschappen van een edge, direct mapped op vis.js edge-opties.
+    All visual properties of an edge, directly mapped on vis.js edge options.
 
-    smooth_type-opties:
+    smooth_type-options:
         ``"dynamic"`` | ``"continuous"`` | ``"discrete"`` | ``"diagonalCross"`` |
         ``"straightCross"`` | ``"horizontal"`` | ``"vertical"`` |
         ``"curvedCW"`` | ``"curvedCCW"`` | ``"cubicBezier"``
@@ -95,7 +95,7 @@ class EdgeStyle:
     extra: dict = field(default_factory=dict)
 
     def to_vis(self, from_id: int, to_id: int) -> dict:
-        """Zet EdgeStyle om naar een vis.js edge-dict."""
+        """Convert EdgeStyle to a vis.js edge-dict."""
         if isinstance(self.color, str):
             col = EdgeColor(color=self.color, highlight=self.color, hover=self.color).to_vis()
         else:
@@ -128,5 +128,5 @@ class EdgeStyle:
         if self.length:
             d["length"] = self.length
 
-        d.update(self.extra)
+        d |= self.extra
         return d

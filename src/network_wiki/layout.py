@@ -1,4 +1,4 @@
-"""Layout- en thema-configuratie voor de gegenereerde HTML-pagina."""
+"""Layout- and theme-configuration for the generated HTML page."""
 
 from __future__ import annotations
 
@@ -9,14 +9,14 @@ from typing import Any
 @dataclass
 class LayoutConfig:
     """
-    Vis.js physics- en layout-instellingen.
+    Vis.js physics- en layout-settings.
 
-    solver-opties:
+    solver-options:
         ``"barnesHut"`` | ``"forceAtlas2Based"`` | ``"repulsion"`` |
         ``"hierarchicalRepulsion"``
 
     hierarchical_direction:
-        ``"UD"`` (boven→onder) | ``"DU"`` | ``"LR"`` (links→rechts) | ``"RL"``
+        ``"UD"`` (up-down) | ``"DU"`` | ``"LR"`` (left-right) | ``"RL"``
     """
     # Physics
     physics_enabled: bool = True
@@ -44,6 +44,13 @@ class LayoutConfig:
     max_zoom: float = 10.0
 
     def to_vis(self) -> dict:
+        """Convert this layout configuration into a vis.js-compatible settings dict.
+        Include physics, interaction and optional hierarchical layout settings.
+
+        Returns:
+            dict: A dictionary with vis.js layout and physics configuration derived from this
+                ``LayoutConfig`` instance.
+        """
         cfg: dict[str, Any] = {
             "physics": {
                 "enabled": self.physics_enabled,
@@ -84,24 +91,24 @@ class LayoutConfig:
 @dataclass
 class ThemeConfig:
     """
-    Thema-instellingen voor de Bootstrap-gebaseerde UI.
+    Theme settings for the Bootstrap-based UI.
 
-    Bootstrap 5 wordt geladen via CDN. De pagina past automatisch mee met de
-    OS-voorkeur van de gebruiker (light/dark) via ``prefers-color-scheme``.
+    Bootstrap 5 is loaded via CDN. The page automatically adapts to the
+    user's OS preference (light/dark) via ``prefers-color-scheme``.
 
     accent_color:
-        CSS-kleur die als primaire accentkleur door de UI heen wordt gebruikt.
-        Overschrijft de Bootstrap primary-kleur via een CSS custom property.
+        CSS color that is used as the primary accent color throughout the UI.
+        Overrides the Bootstrap primary color via a CSS custom property.
 
     panel_width_px:
-        Breedte van het wiki-sidepanel in pixels.
+        Width of the wiki-sidepanel in pixels.
 
     default_color_scheme:
-        ``"auto"`` (volgt OS-voorkeur) | ``"light"`` | ``"dark"``
-        Wordt als ``data-bs-theme`` op de ``<html>``-tag geplaatst.
-        De schakelknop in de UI laat de gebruiker dit alsnog wijzigen.
+        ``"auto"`` (follows OS preference) | ``"light"`` | ``"dark"``
+        Is placed as ``data-bs-theme`` on the ``<html>`` tag.
+        The toggle button in the UI allows the user to change this manually.
     """
-    accent_color: str = "#0d6efd"          # Bootstrap primary blauw als standaard
+    accent_color: str = "#0d6efd"          # Bootstrap primary blue as default
     panel_width_px: int = 380
     default_color_scheme: str = "auto"     # "auto" | "light" | "dark"
     lang: str = "nl"

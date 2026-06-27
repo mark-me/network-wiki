@@ -1,8 +1,8 @@
 """
 network-wiki
 ============
-Generate interactive standalone HTML graph visualisations with
-expandable per-node wiki panels, powered by vis.js and Jinja2.
+Genereer interactieve standalone HTML graph-visualisaties met
+uitklapbare node-wiki's, Bootstrap 5 light/dark theming en Jinja2 templates.
 
 Quickstart::
 
@@ -14,40 +14,22 @@ Quickstart::
     g.vs["name"] = ["A", "B", "C"]
     g.add_edges([(0, 1), (1, 2)])
 
-    exporter = GraphExporter(g, title="My Graph")
+    exporter = GraphExporter(g, title="Mijn Graph")
     exporter.export("graph.html")
 """
 
-from .exporter import (
-    # Visual style
-    NodeColor,
-    NodeFont,
-    NodeStyle,
-    EdgeColor,
-    EdgeArrows,
-    EdgeStyle,
-    # Wiki
-    WikiContent,
-    WikiTemplateRenderer,
-    # Config
-    LayoutConfig,
-    ThemeConfig,
-    # Main class
-    GraphExporter,
-)
+from .node_style import NodeColor, NodeFont, NodeStyle
+from .edge_style import EdgeColor, EdgeArrows, EdgeStyle
+from .wiki import WikiContent, WikiTemplateRenderer
+from .layout import LayoutConfig, ThemeConfig
+from .exporter import GraphExporter
 
 __all__ = [
-    "NodeColor",
-    "NodeFont",
-    "NodeStyle",
-    "EdgeColor",
-    "EdgeArrows",
-    "EdgeStyle",
-    "WikiContent",
-    "WikiTemplateRenderer",
-    "LayoutConfig",
-    "ThemeConfig",
+    "NodeColor", "NodeFont", "NodeStyle",
+    "EdgeColor", "EdgeArrows", "EdgeStyle",
+    "WikiContent", "WikiTemplateRenderer",
+    "LayoutConfig", "ThemeConfig",
     "GraphExporter",
 ]
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

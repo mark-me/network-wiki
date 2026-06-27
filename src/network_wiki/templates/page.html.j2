@@ -1,0 +1,355 @@
+{#
+  page.html.j2 — Hoofd-paginatemplate voor network-wiki
+  =====================================================
+  Variabelen (ingevuld door GraphExporter):
+    title         – paginatitel (str)
+    accent_color  – CSS-accentkleur (str, hex)
+    panel_width   – breedte van het sidepanel in px (int)
+    color_scheme  – "auto" | "light" | "dark"
+    lang          – HTML lang-attribuut (str)
+    nodes_json    – vis.js node-array als JSON-string
+    edges_json    – vis.js edge-array als JSON-string
+    wiki_json     – wiki-data-object als JSON-string
+    layout_json   – vis.js network-opties als JSON-string
+#}
+<!DOCTYPE html>
+<html lang="{{ lang }}" data-bs-theme="{{ color_scheme }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }}</title>
+
+  {# Bootstrap 5 CSS #}
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+    crossorigin="anonymous"
+  >
+  {# Bootstrap Icons #}
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    rel="stylesheet"
+  >
+  {# vis-network #}
+  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+
+  <style>
+    /* ── Accent colour via CSS custom property ── */
+    :root {
+      --nw-accent:        {{ accent_color }};
+      --nw-panel-width:   {{ panel_width }}px;
+    }
+
+    /* Override Bootstrap primary with the accent colour */
+    [data-bs-theme="light"],
+    [data-bs-theme="dark"],
+    :root {
+      --bs-primary:       var(--nw-accent);
+      --bs-primary-rgb:   /* fallback — Bootstrap computes this from the hex */ 13, 110, 253;
+      --bs-link-color:    var(--nw-accent);
+    }
+
+    /* ── Layout ── */
+    html, body { height: 100%; overflow: hidden; }
+
+    #nw-graph-container {
+      position: fixed;
+      inset: 0;
+      /* Shrink right edge when panel is open */
+      right: 0;
+      transition: right 0.3s ease;
+    }
+    #nw-graph-container.panel-open {
+      right: var(--nw-panel-width);
+    }
+
+    /* ── Toolbar ── */
+    #nw-toolbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 50;
+      /* Semi-transparent so graph shows through */
+      background: color-mix(in srgb, var(--bs-body-bg) 85%, transparent);
+      backdrop-filter: blur(6px);
+      border-bottom: 1px solid var(--bs-border-color);
+      padding: 6px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    #nw-toolbar .nw-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--bs-body-color);
+      margin-right: auto;
+    }
+
+    /* ── Side panel ── */
+    #nw-wiki-panel {
+      position: fixed;
+      top: 0; right: 0;
+      width: var(--nw-panel-width);
+      height: 100vh;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+      border-left: 1px solid var(--bs-border-color);
+      background: var(--bs-body-bg);
+      box-shadow: -4px 0 24px rgba(0,0,0,.15);
+    }
+    #nw-wiki-panel.open {
+      transform: translateX(0);
+    }
+    #nw-panel-header {
+      flex-shrink: 0;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--bs-border-color);
+      background: var(--bs-tertiary-bg);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #nw-panel-title {
+      flex: 1;
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--nw-accent);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    #nw-panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    /* ── Mini-wiki helpers (compatible met Bootstrap én custom templates) ── */
+    .nw-node-type {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--bs-secondary-color);
+      margin-bottom: 6px;
+    }
+    .nw-node-desc {
+      font-size: .9rem;
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+    .nw-attr-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .nw-attr-box {
+      background: var(--bs-tertiary-bg);
+      border-radius: 6px;
+      padding: 8px 10px;
+      border: 1px solid var(--bs-border-color);
+    }
+    .nw-attr-label {
+      font-size: .65rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--bs-secondary-color);
+    }
+    .nw-attr-value {
+      font-size: .95rem;
+      font-weight: 600;
+    }
+    .nw-connections {
+      font-size: .85rem;
+      color: var(--bs-secondary-color);
+    }
+    .nw-connections strong { color: var(--nw-accent); }
+
+    /* ── Modal overrides ── */
+    .nw-modal-title { color: var(--nw-accent); }
+    .modal-header { border-bottom-color: var(--bs-border-color); }
+    .modal-footer { border-top-color: var(--bs-border-color); }
+
+    /* ── Wiki-body typography ── */
+    .nw-wiki-body h2 { color: var(--nw-accent); margin-top: 1.2rem; }
+    .nw-wiki-body h3 { color: var(--bs-secondary-color); margin-top: 1rem; }
+    .nw-wiki-body .badge { background-color: var(--nw-accent) !important; }
+
+    /* ── Theme toggle button ── */
+    #nw-theme-toggle { font-size: .85rem; }
+  </style>
+</head>
+<body>
+
+{# ── Toolbar ────────────────────────────────────────────────────────────── #}
+<div id="nw-toolbar">
+  <span class="nw-title">{{ title }}</span>
+
+  <button
+    class="btn btn-sm btn-outline-secondary"
+    id="nw-theme-toggle"
+    title="Schakel light/dark"
+    onclick="toggleTheme()"
+  >
+    <i class="bi bi-circle-half" id="nw-theme-icon"></i>
+  </button>
+</div>
+
+{# ── Graph canvas ────────────────────────────────────────────────────────── #}
+<div id="nw-graph-container" style="padding-top:44px;"></div>
+
+{# ── Side panel ──────────────────────────────────────────────────────────── #}
+<div id="nw-wiki-panel">
+  <div id="nw-panel-header">
+    <span id="nw-panel-title">—</span>
+    <button
+      class="btn btn-sm btn-outline-primary"
+      id="nw-btn-full-wiki"
+      onclick="openFullWiki()"
+      style="display:none;"
+    >
+      <i class="bi bi-book"></i> Wiki
+    </button>
+    <button
+      class="btn btn-sm btn-outline-secondary"
+      onclick="closePanel()"
+      title="Sluiten"
+    >
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+  <div id="nw-panel-body" class="nw-wiki-body"></div>
+</div>
+
+{# ── Full-wiki modal (Bootstrap 5) ──────────────────────────────────────── #}
+<div
+  class="modal fade"
+  id="nw-wiki-modal"
+  tabindex="-1"
+  aria-labelledby="nw-wiki-modal-label"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title nw-modal-title" id="nw-wiki-modal-label">Wiki</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Sluiten"
+        ></button>
+      </div>
+      <div class="modal-body nw-wiki-body" id="nw-wiki-modal-body">
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── Bootstrap 5 JS ──────────────────────────────────────────────────────── #}
+<script
+  src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+  integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmHN9e0b6h4hm6S1oG2CzXqJJnn2X"
+  crossorigin="anonymous"
+></script>
+
+<script>
+// ── Data (gegenereerd door Python) ──────────────────────────────────────────
+const WIKI_DATA  = {{ wiki_json }};
+const VIS_NODES  = {{ nodes_json }};
+const VIS_EDGES  = {{ edges_json }};
+const LAYOUT_CFG = {{ layout_json }};
+
+// ── Graph ───────────────────────────────────────────────────────────────────
+const network = new vis.Network(
+  document.getElementById("nw-graph-container"),
+  { nodes: new vis.DataSet(VIS_NODES), edges: new vis.DataSet(VIS_EDGES) },
+  LAYOUT_CFG
+);
+
+// ── State ────────────────────────────────────────────────────────────────────
+let currentNodeId = null;
+const bsModal = new bootstrap.Modal(document.getElementById("nw-wiki-modal"));
+
+// ── Panel ────────────────────────────────────────────────────────────────────
+network.on("click", params => {
+  if (params.nodes.length > 0) openPanel(params.nodes[0]);
+  else if (params.edges.length === 0) closePanel();
+});
+
+function openPanel(id) {
+  currentNodeId = id;
+  const data = WIKI_DATA[id];
+  if (!data) return;
+
+  document.getElementById("nw-panel-title").textContent = data.label;
+  document.getElementById("nw-panel-body").innerHTML =
+    data.mini || "<em class='text-secondary'>Geen wiki beschikbaar.</em>";
+
+  const btnFull = document.getElementById("nw-btn-full-wiki");
+  btnFull.style.display = data.full ? "" : "none";
+
+  document.getElementById("nw-wiki-panel").classList.add("open");
+  document.getElementById("nw-graph-container").classList.add("panel-open");
+}
+
+function closePanel() {
+  document.getElementById("nw-wiki-panel").classList.remove("open");
+  document.getElementById("nw-graph-container").classList.remove("panel-open");
+  currentNodeId = null;
+}
+
+function openFullWiki() {
+  if (currentNodeId === null) return;
+  const data = WIKI_DATA[currentNodeId];
+  if (!data?.full) return;
+  document.getElementById("nw-wiki-modal-label").textContent = data.label;
+  document.getElementById("nw-wiki-modal-body").innerHTML = data.full;
+  bsModal.show();
+}
+
+// ── Keyboard shortcuts ───────────────────────────────────────────────────────
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") { bsModal.hide(); closePanel(); }
+});
+
+// ── Light / dark theme toggle ────────────────────────────────────────────────
+const SCHEME_KEY = "nw-color-scheme";
+const SCHEMES = ["auto", "light", "dark"];
+const ICONS   = { auto: "bi-circle-half", light: "bi-sun-fill", dark: "bi-moon-fill" };
+
+function resolveScheme(scheme) {
+  if (scheme !== "auto") return scheme;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function applyScheme(scheme) {
+  document.documentElement.setAttribute("data-bs-theme", resolveScheme(scheme));
+  const icon = document.getElementById("nw-theme-icon");
+  icon.className = "bi " + (ICONS[scheme] || ICONS.auto);
+}
+
+function toggleTheme() {
+  const current = localStorage.getItem(SCHEME_KEY) || "{{ color_scheme }}";
+  const next = SCHEMES[(SCHEMES.indexOf(current) + 1) % SCHEMES.length];
+  localStorage.setItem(SCHEME_KEY, next);
+  applyScheme(next);
+}
+
+// On load: respect saved preference, then default
+(function () {
+  const saved = localStorage.getItem(SCHEME_KEY) || "{{ color_scheme }}";
+  applyScheme(saved);
+})();
+
+// Respond to OS preference changes when scheme is "auto"
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  const current = localStorage.getItem(SCHEME_KEY) || "{{ color_scheme }}";
+  if (current === "auto") applyScheme("auto");
+});
+</script>
+</body>
+</html>

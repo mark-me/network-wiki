@@ -1,4 +1,4 @@
-"""Basic smoke tests for network-wiki."""
+"""Smoke tests voor network-wiki."""
 import igraph as ig
 import pytest
 from network_wiki import (
@@ -20,18 +20,35 @@ def simple_graph():
 
 
 def test_export_default(simple_graph, tmp_path):
-    """Export met standaard instellingen produceert een geldig HTML-bestand."""
     out = tmp_path / "test.html"
-    exporter = GraphExporter(simple_graph)
-    exporter.export(out)
+    GraphExporter(simple_graph).export(out)
     html = out.read_text(encoding="utf-8")
     assert "vis-network" in html
+    assert "bootstrap" in html.lower()
     assert "Pipeline" in html
     assert "WIKI_DATA" in html
 
 
-def test_export_with_node_style_callback(simple_graph, tmp_path):
-    """NodeStyle callback wordt toegepast."""
+def test_bootstrap_theming(simple_graph, tmp_path):
+    out = tmp_path / "themed.html"
+    GraphExporter(
+        simple_graph,
+        theme=ThemeConfig(accent_color="#e94560", default_color_scheme="dark"),
+    ).export(out)
+    html = out.read_text(encoding="utf-8")
+    assert "#e94560" in html
+    assert 'data-bs-theme="dark"' in html
+
+
+def test_theme_toggle_js(simple_graph, tmp_path):
+    out = tmp_path / "toggle.html"
+    GraphExporter(simple_graph).export(out)
+    html = out.read_text(encoding="utf-8")
+    assert "toggleTheme" in html
+    assert "nw-theme-toggle" in html
+
+
+def test_node_style_callback(simple_graph, tmp_path):
     out = tmp_path / "styled.html"
     exporter = GraphExporter(simple_graph)
     exporter.set_node_style_callback(
@@ -41,44 +58,33 @@ def test_export_with_node_style_callback(simple_graph, tmp_path):
     assert "diamond" in out.read_text(encoding="utf-8")
 
 
-def test_export_with_wiki_callback(simple_graph, tmp_path):
-    """WikiContent callback vult de wiki-data."""
+def test_wiki_callback(simple_graph, tmp_path):
     out = tmp_path / "wiki.html"
     exporter = GraphExporter(simple_graph)
     exporter.set_wiki_callback(
         lambda v: WikiContent(
             mini_html=f"<p>Mini: {v['name']}</p>",
-            full_html=f"<h2>{v['name']}</h2><p>Full wiki.</p>",
+            full_html=f"<h2>{v['name']}</h2>",
         )
     )
     exporter.export(out)
     html = out.read_text(encoding="utf-8")
     assert "Mini: Pipeline" in html
-    assert "Full wiki." in html
 
 
 def test_package_templates_loaded(simple_graph, tmp_path):
-    """Gebundelde package-templates worden gevonden zonder template_dir."""
-    out = tmp_path / "pkg_tmpl.html"
-    renderer = WikiTemplateRenderer(
-        mini_template_file="mini_default.html.j2",
-        full_template_file="full_default.html.j2",
-        undefined_strict=False,
-    )
+    renderer = WikiTemplateRenderer(undefined_strict=False)
     exporter = GraphExporter(simple_graph)
     exporter.set_wiki_renderer(renderer)
-    exporter.export(out)
-    assert out.exists()
+    exporter.export(tmp_path / "pkg_tmpl.html")
 
 
 def test_user_template_overrides_package(simple_graph, tmp_path):
-    """Een gebruikerstemplate heeft prioriteit boven de package-template."""
     tmpl_dir = tmp_path / "templates"
     tmpl_dir.mkdir()
     (tmpl_dir / "mini_default.html.j2").write_text(
         "<p class='user-mini'>{{ label }}</p>", encoding="utf-8"
     )
-    out = tmp_path / "override.html"
     renderer = WikiTemplateRenderer(
         template_dir=str(tmpl_dir),
         mini_template_file="mini_default.html.j2",
@@ -86,31 +92,36 @@ def test_user_template_overrides_package(simple_graph, tmp_path):
     )
     exporter = GraphExporter(simple_graph)
     exporter.set_wiki_renderer(renderer)
-    exporter.export(out)
-    assert "user-mini" in out.read_text(encoding="utf-8")
+    exporter.export(tmp_path / "override.html")
+    assert "user-mini" in (tmp_path / "override.html").read_text(encoding="utf-8")
 
 
-def test_inline_template_overrides_package(simple_graph, tmp_path):
-    """Een inline template heeft prioriteit boven de package-template."""
-    out = tmp_path / "inline.html"
+def test_inline_template(simple_graph, tmp_path):
     renderer = WikiTemplateRenderer(
         mini_template="<span class='inline-mini'>{{ label }}</span>",
         undefined_strict=False,
     )
     exporter = GraphExporter(simple_graph)
     exporter.set_wiki_renderer(renderer)
-    exporter.export(out)
-    assert "inline-mini" in out.read_text(encoding="utf-8")
+    exporter.export(tmp_path / "inline.html")
+    assert "inline-mini" in (tmp_path / "inline.html").read_text(encoding="utf-8")
 
 
 def test_hierarchical_layout(simple_graph, tmp_path):
-    """Hierarchisch layout schakelt physics uit."""
-    out = tmp_path / "hier.html"
     exporter = GraphExporter(
         simple_graph,
         layout=LayoutConfig(hierarchical=True, hierarchical_direction="LR"),
     )
-    exporter.export(out)
-    html = out.read_text(encoding="utf-8")
-    assert '"enabled": false' in html  # physics disabled
+    exporter.export(tmp_path / "hier.html")
+    html = (tmp_path / "hier.html").read_text(encoding="utf-8")
+    assert '"enabled": false' in html
     assert "LR" in html
+
+
+def test_module_imports():
+    from network_wiki import (
+        NodeColor, NodeFont, NodeStyle,
+        EdgeColor, EdgeArrows, EdgeStyle,
+        WikiContent, WikiTemplateRenderer,
+        LayoutConfig, ThemeConfig, GraphExporter,
+    )

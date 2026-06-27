@@ -1,7 +1,9 @@
 """GraphExporter — orchestrates node/edge styling, wiki rendering, and HTML output."""
 
+
 from __future__ import annotations
 
+import contextlib
 import importlib.resources as _pkg_res
 import json
 from pathlib import Path
@@ -113,12 +115,10 @@ class GraphExporter:
             str: The chosen label text for the vertex.
         """
         for attr in ("name", "label"):
-            try:
+            with contextlib.suppress(KeyError, IndexError):
                 val = vertex[attr]
                 if val is not None:
                     return str(val)
-            except (KeyError, IndexError):
-                pass
         return f"Node {vertex.index}"
 
     def _build_nodes(self) -> tuple[list[dict], dict[int, WikiContent]]:
@@ -134,7 +134,11 @@ class GraphExporter:
 
         for v in self.graph.vs:
             label = self._get_label(v)
-            style = self._node_style_cb(v) if self._node_style_cb else self.default_node_style
+            style = (
+                self._node_style_cb(v)
+                if self._node_style_cb
+                else self.default_node_style
+            )
             vis_nodes.append(style.to_vis(v.index, label))
 
             if self._wiki_renderer:
@@ -157,7 +161,11 @@ class GraphExporter:
         """
         result = []
         for e in self.graph.es:
-            style = self._edge_style_cb(e) if self._edge_style_cb else self.default_edge_style
+            style = (
+                self._edge_style_cb(e)
+                if self._edge_style_cb
+                else self.default_edge_style
+            )
             result.append(style.to_vis(e.source, e.target))
         return result
 

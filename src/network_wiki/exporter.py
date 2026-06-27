@@ -495,18 +495,26 @@ class WikiTemplateRenderer:
         self._undefined = StrictUndefined if undefined_strict else None
 
         # ── Jinja2-omgeving opzetten ──────────────────────────────────────
+        # Loader-volgorde: gebruikersbestanden -> inline strings -> gebundelde package-templates
+        from jinja2 import DictLoader, ChoiceLoader
         loaders = []
+
+        # 1. Gebruiker: externe map met .j2-bestanden (hoogste prioriteit)
         if template_dir is not None:
             self._template_dir = Path(template_dir).resolve()
             loaders.append(FileSystemLoader(str(self._template_dir)))
         else:
             self._template_dir = None
 
-        # StringLoader voor inline templates (altijd beschikbaar)
-        from jinja2 import DictLoader, ChoiceLoader
+        # 2. Gebruiker: inline template-strings
         self._inline_store: dict[str, str] = {}
-        inline_loader = DictLoader(self._inline_store)
-        loaders.append(inline_loader)
+        loaders.append(DictLoader(self._inline_store))
+
+        # 3. Package: meegeleverde standaard-templates (laagste prioriteit).
+        #    importlib.resources werkt zowel geinstalleerd (pip) als in-place (src-layout).
+        import importlib.resources as _pkg_res
+        _pkg_templates = _pkg_res.files("network_wiki").joinpath("templates")
+        loaders.append(FileSystemLoader(str(_pkg_templates)))
 
         self._env = Environment(
             loader=ChoiceLoader(loaders),

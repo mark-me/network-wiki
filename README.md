@@ -2,7 +2,7 @@
 
 Generate interactive standalone HTML graph visualisations from [igraph](https://igraph.org) graphs, with expandable per-node wiki panels powered by [vis.js](https://visjs.github.io/vis-network/docs/network/) and [Jinja2](https://jinja.palletsprojects.com/).
 
-Click a node → side panel opens with a mini wiki.  
+Click a node → side panel opens with a mini wiki.
 Click "Full wiki" → modal opens with your full Jinja2-rendered page.
 
 ## Installation
@@ -153,7 +153,7 @@ exporter = GraphExporter(
 ## Development
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/network-wiki.git
+git clone https://github.com/mark-me/network-wiki.git
 cd network-wiki
 pip install -e ".[dev]"
 pytest

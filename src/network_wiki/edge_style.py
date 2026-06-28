@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any, Optional, Literal
 
 
 @dataclass
@@ -21,7 +21,7 @@ class EdgeColor:
     color: str = "#848484"
     highlight: str = "#848484"
     hover: str = "#848484"
-    inherit: str | bool = False
+    inherit: Literal["from", "to", "both"] | bool = False
 
     def to_vis(self) -> dict:
         """Serialise to a vis.js edge colour dict."""

@@ -2,17 +2,46 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Any, Literal
-
+from dataclasses import dataclass
+from typing import Any, Literal, TypedDict
 
 # ---------------------------------------------------------------------------
 # Bootswatch catalogue
 # ---------------------------------------------------------------------------
 
+class BootswatchThemesDict(TypedDict):
+    # Light themes
+    cerulean: Literal["light"]
+    cosmo: Literal["light"]
+    flatly: Literal["light"]
+    journal: Literal["light"]
+    litera: Literal["light"]
+    lumen: Literal["light"]
+    lux: Literal["light"]
+    materia: Literal["light"]
+    minty: Literal["light"]
+    morph: Literal["light"]
+    pulse: Literal["light"]
+    quartz: Literal["light"]
+    sandstone: Literal["light"]
+    simplex: Literal["light"]
+    sketchy: Literal["light"]
+    spacelab: Literal["light"]
+    united: Literal["light"]
+    yeti: Literal["light"]
+    zephyr: Literal["light"]
+    # Dark themes
+    cyborg: Literal["dark"]
+    darkly: Literal["dark"]
+    slate: Literal["dark"]
+    solar: Literal["dark"]
+    superhero: Literal["dark"]
+    vapor: Literal["dark"]
+
+
 #: All available Bootswatch 5 themes, mapped to their base colour scheme.
 #: Developers pick one of these names for ``ThemeConfig.bootswatch_theme``.
-BOOTSWATCH_THEMES: dict[str, Literal["light", "dark"]] = {
+BOOTSWATCH_THEMES: BootswatchThemesDict = {
     # Light themes
     "cerulean":  "light",
     "cosmo":     "light",
@@ -41,6 +70,34 @@ BOOTSWATCH_THEMES: dict[str, Literal["light", "dark"]] = {
     "superhero": "dark",
     "vapor":     "dark",
 }
+
+BootswatchThemeName = Literal[
+    "cerulean",
+    "cosmo",
+    "flatly",
+    "journal",
+    "litera",
+    "lumen",
+    "lux",
+    "materia",
+    "minty",
+    "morph",
+    "pulse",
+    "quartz",
+    "sandstone",
+    "simplex",
+    "sketchy",
+    "spacelab",
+    "united",
+    "yeti",
+    "zephyr",
+    "cyborg",
+    "darkly",
+    "slate",
+    "solar",
+    "superhero",
+    "vapor",
+]
 
 _BOOTSWATCH_VERSION = "5.3.3"
 _BOOTSTRAP_VERSION  = "5.3.3"

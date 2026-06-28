@@ -5,7 +5,7 @@ Generate interactive standalone HTML graph visualisations from [igraph](https://
 Click a node → side panel opens with a mini wiki.
 Click "Full wiki" → modal opens with your full Jinja2-rendered page.
 
-## Installation
+## 📥 Installation
 
 ```bash
 pip install network-wiki
@@ -17,7 +17,7 @@ Or, directly from GitHub:
 pip install git+https://github.com/mark-me/network-wiki.git
 ```
 
-## Quickstart
+## 🚀 Quickstart
 
 ```python
 import igraph as ig
@@ -33,7 +33,7 @@ exporter = GraphExporter(g, title="My Graph")
 exporter.export("graph.html")
 ```
 
-## Node and edge styling
+## 🎨 Node and edge styling
 
 Pass a callback that returns a `NodeStyle` or `EdgeStyle` per vertex/edge:
 
@@ -52,7 +52,7 @@ exporter.set_edge_style_callback(lambda e: EdgeStyle(
 ))
 ```
 
-## Wiki content via Jinja2 templates
+## 📚 Wiki content via Jinja2 templates
 
 ### Option A — your own template files
 
@@ -131,7 +131,7 @@ The package ships with fallback templates that work out of the box:
 
 You can override any of these by placing a file with the same name in your `template_dir`.
 
-## Layout and theme
+## 🖼️ Layout and theme
 
 ```python
 from network_wiki import LayoutConfig, ThemeConfig
@@ -150,7 +150,7 @@ exporter = GraphExporter(
 )
 ```
 
-## Development
+## 🛠️ Development
 
 ```bash
 git clone https://github.com/mark-me/network-wiki.git
@@ -159,6 +159,6 @@ pip install -e ".[dev]"
 pytest
 ```
 
-## License
+## ⚖️ License
 
 MIT

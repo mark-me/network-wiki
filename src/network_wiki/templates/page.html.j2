@@ -10,7 +10,9 @@
     lang            – HTML lang attribute (str)
     nodes_json      – vis.js node array as a JSON string
     edges_json      – vis.js edge array as a JSON string
-    wiki_json       – wiki-data object as a JSON string
+    node_wiki_json  – node wiki-data object as a JSON string
+    edge_wiki_json  – edge wiki-data object as a JSON string
+    has_edge_wiki   – boolean: whether any edge wiki data exists
     layout_json     – vis.js network options as a JSON string
 #}
 <!DOCTYPE html>
@@ -20,17 +22,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ title }}</title>
 
-  {# Bootstrap / Bootswatch CSS chosen by the developer #}
+  {# Bootstrap / Bootswatch CSS — chosen by the developer at export time #}
   <link id="nw-bs-css" href="{{ css_url }}" rel="stylesheet">
 
-  {# Bootstrap Icons – theme-independent #}
+  {# Bootstrap Icons — theme-independent #}
   <link
     href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
     rel="stylesheet"
   >
 
-  {# vis-network #}
-  <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+  {# vis-network — pinned to a specific minor version for reproducibility #}
+  <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
 
   <style>
     /* ── Custom properties ────────────────────────────────────────────── */
@@ -45,7 +47,7 @@
     #nw-graph-container {
       position: fixed;
       inset: 0;
-      padding-top: 44px;          /* clear the toolbar */
+      padding-top: 44px;
       transition: right 0.3s ease;
     }
     #nw-graph-container.panel-open { right: var(--nw-panel-width); }
@@ -148,7 +150,14 @@
 <div id="nw-toolbar">
   <span class="nw-title">{{ title }}</span>
 
-  {# Light / dark toggle – controlled by the user ─────────────────────────── #}
+  {# Fit button — resets zoom and pan to show the whole graph #}
+  <button
+    class="btn btn-sm btn-outline-secondary"
+    title="Fit graph in view"
+    onclick="network.fit()"
+  ><i class="bi bi-fullscreen"></i></button>
+
+  {# Light / dark toggle — controlled by the user, persisted in localStorage #}
   <button
     class="btn btn-sm btn-outline-secondary"
     id="nw-scheme-btn"
@@ -203,13 +212,15 @@
 
 <script>
 // ── Static data injected by Python ───────────────────────────────────────────
-const WIKI_DATA  = {{ wiki_json }};
-const VIS_NODES  = {{ nodes_json }};
-const VIS_EDGES  = {{ edges_json }};
-const LAYOUT_CFG = {{ layout_json }};
+const NODE_WIKI   = {{ node_wiki_json }};
+const EDGE_WIKI   = {{ edge_wiki_json }};
+const VIS_NODES   = {{ nodes_json }};
+const VIS_EDGES   = {{ edges_json }};
+const LAYOUT_CFG  = {{ layout_json }};
+const HAS_EDGE_WIKI = {{ "true" if has_edge_wiki else "false" }};
 
-// Base colour scheme determined by the developer's theme choice.
-// The user's toggle overrides this at runtime and persists in localStorage.
+// Base colour scheme set by the developer's Bootswatch choice.
+// User toggle overrides this at runtime.
 const BASE_SCHEME = "{{ base_scheme }}";
 
 // ── Graph ─────────────────────────────────────────────────────────────────────
@@ -219,23 +230,30 @@ const network = new vis.Network(
   LAYOUT_CFG
 );
 
-let currentNodeId = null;
+let currentWikiData = null;   // holds whichever NODE_WIKI or EDGE_WIKI entry is open
 const bsModal = new bootstrap.Modal(document.getElementById("nw-wiki-modal"));
 
-// ── Panel ─────────────────────────────────────────────────────────────────────
+// ── Click handling ────────────────────────────────────────────────────────────
 network.on("click", params => {
-  if (params.nodes.length > 0) openPanel(params.nodes[0]);
-  else if (params.edges.length === 0) closePanel();
+  if (params.nodes.length > 0) {
+    openPanel(NODE_WIKI[params.nodes[0]]);
+  } else if (params.edges.length > 0 && HAS_EDGE_WIKI) {
+    openPanel(EDGE_WIKI[params.edges[0]]);
+  } else {
+    closePanel();
+  }
 });
 
-function openPanel(id) {
-  currentNodeId = id;
-  const data = WIKI_DATA[id];
+function openPanel(data) {
   if (!data) return;
+  currentWikiData = data;
+
   document.getElementById("nw-panel-title").textContent = data.label;
   document.getElementById("nw-panel-body").innerHTML =
     data.mini || "<em class='text-secondary'>No wiki content available.</em>";
-  document.getElementById("nw-btn-full-wiki").style.display = data.full ? "" : "none";
+  document.getElementById("nw-btn-full-wiki").style.display =
+    data.full ? "" : "none";
+
   document.getElementById("nw-wiki-panel").classList.add("open");
   document.getElementById("nw-graph-container").classList.add("panel-open");
 }
@@ -243,15 +261,13 @@ function openPanel(id) {
 function closePanel() {
   document.getElementById("nw-wiki-panel").classList.remove("open");
   document.getElementById("nw-graph-container").classList.remove("panel-open");
-  currentNodeId = null;
+  currentWikiData = null;
 }
 
 function openFullWiki() {
-  if (currentNodeId === null) return;
-  const data = WIKI_DATA[currentNodeId];
-  if (!data?.full) return;
-  document.getElementById("nw-wiki-modal-label").textContent = data.label;
-  document.getElementById("nw-wiki-modal-body").innerHTML = data.full;
+  if (!currentWikiData?.full) return;
+  document.getElementById("nw-wiki-modal-label").textContent = currentWikiData.label;
+  document.getElementById("nw-wiki-modal-body").innerHTML = currentWikiData.full;
   bsModal.show();
 }
 
@@ -261,10 +277,10 @@ document.addEventListener("keydown", e => {
 
 // ── Light / dark scheme toggle ────────────────────────────────────────────────
 //
-// Priority order (highest wins):
-//   1. User's explicit choice, saved in localStorage
-//   2. OS preference (prefers-color-scheme)
-//   3. Base scheme of the developer-selected Bootswatch theme
+// Priority (highest wins):
+//   1. User's explicit choice — saved in localStorage
+//   2. OS preference          — prefers-color-scheme media query
+//   3. Base scheme            — derived from the Bootswatch theme
 //
 const SCHEME_KEY = "nw-scheme";
 const ICONS = { light: "bi-sun-fill", dark: "bi-moon-fill" };
@@ -274,7 +290,6 @@ function osPrefers() {
 }
 
 function activeScheme() {
-  // Explicit user choice beats everything; OS preference beats theme default.
   return localStorage.getItem(SCHEME_KEY) || osPrefers();
 }
 
@@ -290,10 +305,10 @@ function toggleScheme() {
   applyScheme(next);
 }
 
-// Apply on load.
+// Apply on first load.
 applyScheme(activeScheme());
 
-// Keep in sync when the user changes the OS setting (only when no explicit choice is stored).
+// Keep in sync when OS setting changes (only when no explicit user choice).
 window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
   if (!localStorage.getItem(SCHEME_KEY)) applyScheme(osPrefers());
 });

@@ -179,27 +179,15 @@ class WikiTemplateRenderer:
             except (KeyError, IndexError):
                 pass
 
-        label = next(
-            (str(attrs[k]) for k in ("name", "label") if attrs.get(k) is not None),
-            f"Node {vertex.index}",
-        )
+        label = _vertex_label(vertex, vertex.index)
 
         n_in = len(graph.predecessors(vertex.index))
         n_out = len(graph.successors(vertex.index))
 
-        neighbours: list[str] = []
-        for i in graph.neighbors(vertex.index):
-            nv = graph.vs[i]
-            for key in ("name", "label"):
-                try:
-                    val = nv[key]
-                    if val is not None:
-                        neighbours.append(str(val))
-                        break
-                except (KeyError, IndexError):
-                    pass
-            else:
-                neighbours.append(f"Node {i}")
+        neighbours: list[str] = [
+            _vertex_label(graph.vs[i], i)
+            for i in graph.neighbors(vertex.index)
+        ]
 
         ctx = {
             "v": vertex,
@@ -337,5 +325,50 @@ def _auto_wiki(vertex, graph) -> WikiContent:
         f"<tbody>{full_rows}</tbody></table>"
         f"<h5 class='mt-3'>Connected nodes</h5>"
         f"<ul>{nbr_items or '<li><em>None</em></li>'}</ul>"
+    )
+    return WikiContent(mini_html=mini, full_html=full)
+
+
+def _auto_edge_wiki(edge, graph) -> WikiContent:
+    """Auto-generate :class:`WikiContent` for an edge from its attributes.
+
+    Used when no edge wiki callback is configured but the graph has edge
+    attributes worth displaying.
+
+    Args:
+        edge: The ``igraph.Edge`` to generate wiki content for.
+        graph: The parent ``igraph.Graph``.
+
+    Returns:
+        A :class:`WikiContent` with simple attribute table mini- and full-HTML.
+    """
+    attrs = {k: edge[k] for k in graph.edge_attributes() if edge[k] is not None}
+    src_label = _vertex_label(graph.vs[edge.source], edge.source)
+    tgt_label = _vertex_label(graph.vs[edge.target], edge.target)
+
+    attr_boxes = "".join(
+        f'<div class="nw-attr-box">'
+        f'<div class="nw-attr-label">{html_mod.escape(str(k))}</div>'
+        f'<div class="nw-attr-value">{html_mod.escape(str(v))}</div>'
+        f'</div>'
+        for k, v in attrs.items()
+    )
+    mini = (
+        f'<div class="nw-mini-wiki">'
+        f'<div class="nw-node-type">Edge {edge.index}</div>'
+        f'<div class="nw-node-desc">{html_mod.escape(src_label)} &rarr; {html_mod.escape(tgt_label)}</div>'
+        f'<div class="nw-attr-grid">{attr_boxes}</div>'
+        f'</div>'
+    )
+
+    full_rows = "".join(
+        f"<tr><td>{html_mod.escape(str(k))}</td><td>{html_mod.escape(str(v))}</td></tr>"
+        for k, v in attrs.items()
+    )
+    full = (
+        f"<h2>Edge {edge.index}: {html_mod.escape(src_label)} &rarr; {html_mod.escape(tgt_label)}</h2>"
+        f"<table class='table table-sm table-striped'>"
+        f"<thead><tr><th>Attribute</th><th>Value</th></tr></thead>"
+        f"<tbody>{full_rows or '<tr><td colspan=2><em>No attributes</em></td></tr>'}</tbody></table>"
     )
     return WikiContent(mini_html=mini, full_html=full)

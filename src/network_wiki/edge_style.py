@@ -1,4 +1,4 @@
-"""Visual style-dataclasses for edges."""
+"""Visual style dataclasses for graph edges."""
 
 from __future__ import annotations
 
@@ -8,13 +8,23 @@ from typing import Any, Optional
 
 @dataclass
 class EdgeColor:
-    """Color configuration for an edge."""
+    """Colour configuration for an edge.
+
+    Args:
+        color: Default edge colour (CSS string).
+        highlight: Edge colour when selected.
+        hover: Edge colour on mouse-over.
+        inherit: Inherit colour from a connected node.
+            ``"from"``, ``"to"``, ``"both"``, or ``False`` to disable.
+    """
+
     color: str = "#848484"
     highlight: str = "#848484"
     hover: str = "#848484"
-    inherit: str | bool = False  # "from" | "to" | "both" | False
+    inherit: str | bool = False
 
     def to_vis(self) -> dict:
+        """Serialise to a vis.js edge colour dict."""
         return {
             "color": self.color,
             "highlight": self.highlight,
@@ -25,14 +35,26 @@ class EdgeColor:
 
 @dataclass
 class EdgeArrows:
-    """
-    Arrow configuration for edges.
+    """Arrow endpoint configuration for an edge.
 
-    type-options:
-        ``"arrow"`` | ``"bar"`` | ``"circle"`` | ``"box"`` | ``"crow"`` |
-        ``"curve"`` | ``"diamond"`` | ``"inv_curve"`` | ``"inv_triangle"`` |
-        ``"triangle"`` | ``"vee"``
+    Each endpoint (``to``, ``from``, ``middle``) can be independently
+    enabled with its own scale and type.
+
+    Args:
+        to_enabled: Show an arrow at the target end.
+        to_scale: Scale factor for the target arrowhead.
+        to_type: Shape of the target arrowhead. Options: ``"arrow"``,
+            ``"bar"``, ``"circle"``, ``"box"``, ``"crow"``, ``"curve"``,
+            ``"diamond"``, ``"inv_curve"``, ``"inv_triangle"``,
+            ``"triangle"``, ``"vee"``.
+        from_enabled: Show an arrow at the source end.
+        from_scale: Scale factor for the source arrowhead.
+        from_type: Shape of the source arrowhead (same options as *to_type*).
+        middle_enabled: Show an arrow at the midpoint of the edge.
+        middle_scale: Scale factor for the midpoint arrowhead.
+        middle_type: Shape of the midpoint arrowhead.
     """
+
     to_enabled: bool = True
     to_scale: float = 0.8
     to_type: str = "arrow"
@@ -46,6 +68,7 @@ class EdgeArrows:
     middle_type: str = "arrow"
 
     def to_vis(self) -> dict:
+        """Serialise to a vis.js arrows options dict."""
         d: dict[str, Any] = {}
         if self.to_enabled:
             d["to"] = {"enabled": True, "scaleFactor": self.to_scale, "type": self.to_type}
@@ -58,48 +81,62 @@ class EdgeArrows:
 
 @dataclass
 class EdgeStyle:
+    """All visual properties of an edge, mapped directly to vis.js edge options.
+
+    Args:
+        width: Line width in pixels.
+        width_selected: Line width when the edge is selected.
+        color: A hex colour string or an :class:`EdgeColor` for full control.
+        label: Optional text label rendered along the edge.
+        font_color: CSS colour of the label text.
+        font_size: Font size of the label in points.
+        font_align: Label alignment: ``"middle"``, ``"top"``,
+            ``"bottom"``, or ``"horizontal"``.
+        arrows: Arrow endpoint configuration.
+        dashes: Render the edge as a dashed line.
+        smooth_type: Edge curve algorithm. Options: ``"dynamic"``,
+            ``"continuous"``, ``"discrete"``, ``"diagonalCross"``,
+            ``"straightCross"``, ``"horizontal"``, ``"vertical"``,
+            ``"curvedCW"``, ``"curvedCCW"``, ``"cubicBezier"``.
+        smooth_roundness: Curvature amount (0–1).
+        shadow: Enable drop shadow on the edge line.
+        tooltip: HTML string shown on mouse-over (vis.js ``title``).
+        length: Preferred edge length in pixels (used by the physics engine).
+        extra: Any additional vis.js edge properties not listed above.
+            These are merged last and override earlier values.
     """
-    All visual properties of an edge, directly mapped on vis.js edge options.
 
-    smooth_type-options:
-        ``"dynamic"`` | ``"continuous"`` | ``"discrete"`` | ``"diagonalCross"`` |
-        ``"straightCross"`` | ``"horizontal"`` | ``"vertical"`` |
-        ``"curvedCW"`` | ``"curvedCCW"`` | ``"cubicBezier"``
-
-    color:
-        Geef een hex-string of een :class:`EdgeColor` voor volledige controle.
-
-    extra:
-        Eventuele vis.js edge-properties die hier niet staan (worden samengevoegd).
-    """
     width: float = 2.0
     width_selected: float = 3.0
-
-    color: EdgeColor | str = field(default_factory=lambda: EdgeColor())
-
+    color: EdgeColor | str = field(default_factory=EdgeColor)
     label: Optional[str] = None
     font_color: str = "#343434"
     font_size: int = 12
-    font_align: str = "middle"  # middle | top | bottom | horizontal
-
+    font_align: str = "middle"
     arrows: EdgeArrows = field(default_factory=EdgeArrows)
-
     dashes: bool = False
     smooth_type: str = "cubicBezier"
-    smooth_roundness: float = 0.5  # 0–1
-
+    smooth_roundness: float = 0.5
     shadow: bool = False
     tooltip: Optional[str] = None
-    length: Optional[int] = None  # gewenste lengte in pixels (physics)
-
+    length: Optional[int] = None
     extra: dict = field(default_factory=dict)
 
     def to_vis(self, from_id: int, to_id: int) -> dict:
-        """Convert EdgeStyle to a vis.js edge-dict."""
-        if isinstance(self.color, str):
-            col = EdgeColor(color=self.color, highlight=self.color, hover=self.color).to_vis()
-        else:
-            col = self.color.to_vis()
+        """Serialise this style to a vis.js edge dict.
+
+        Args:
+            from_id: Source vertex index.
+            to_id: Target vertex index.
+
+        Returns:
+            A dict suitable for inclusion in the vis.js ``DataSet`` of edges.
+        """
+        col = (
+            EdgeColor(color=self.color, highlight=self.color, hover=self.color).to_vis()
+            if isinstance(self.color, str)
+            else self.color.to_vis()
+        )
 
         d: dict[str, Any] = {
             "from": from_id,

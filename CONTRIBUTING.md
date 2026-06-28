@@ -11,7 +11,7 @@ Clone the repo once, then install it as an editable package.
 Any changes you make to the source are immediately reflected — no reinstall needed.
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/network-wiki.git
+git clone https://github.com/mark-me/network-wiki.git
 cd network-wiki
 pip install -e .
 ```
@@ -28,13 +28,13 @@ No local clone required.  The package is fetched and installed from the
 repository's default branch.
 
 ```bash
-pip install git+https://github.com/YOUR_USERNAME/network-wiki.git
+pip install git+https://github.com/mark-me/network-wiki.git
 ```
 
 Pin a specific commit or tag for reproducible installs:
 
 ```bash
-pip install git+https://github.com/YOUR_USERNAME/network-wiki.git@v0.3.0
+pip install git+https://github.com/mark-me/network-wiki.git@v0.3.0
 ```
 
 ### Option 3 — path dependency in `pyproject.toml`
@@ -62,7 +62,7 @@ dependencies = [
 ## Setting up a development environment
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/network-wiki.git
+git clone https://github.com/mark-me/network-wiki.git
 cd network-wiki
 pip install -e ".[dev]"   # installs the package + pytest, build, twine
 ```

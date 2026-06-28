@@ -1,42 +1,39 @@
-{# mini_default.html.j2 — Compact sidepanel-wiki voor alle node-types #}
-<div class="mini-wiki">
+{# mini_default.html.j2 — Compact side-panel wiki for all node types #}
+<div class="nw-mini-wiki">
 
-  <div class="node-type">{{ attrs.get('type', 'Node') | upper }}</div>
+  <div class="nw-node-type">{{ attrs.get('type', 'Node') | upper }}</div>
 
   {% if attrs.description is defined and attrs.description %}
-  <div class="node-desc">{{ attrs.description }}</div>
+  <div class="nw-node-desc">{{ attrs.description }}</div>
   {% endif %}
 
-  <div class="attr-grid">
+  <div class="nw-attr-grid">
     {% if attrs.status is defined %}
-    <div class="attr-box">
-      <div class="attr-label">Status</div>
-      <div class="attr-value">
-        {% if attrs.status == 'actief' %}✅{% else %}⏸️{% endif %}
-        {{ attrs.status | capitalize }}
-      </div>
+    <div class="nw-attr-box">
+      <div class="nw-attr-label">Status</div>
+      <div class="nw-attr-value">{{ attrs.status | capitalize }}</div>
     </div>
     {% endif %}
 
     {% if attrs.owner is defined %}
-    <div class="attr-box">
-      <div class="attr-label">Eigenaar</div>
-      <div class="attr-value">{{ attrs.owner }}</div>
+    <div class="nw-attr-box">
+      <div class="nw-attr-label">Owner</div>
+      <div class="nw-attr-value">{{ attrs.owner }}</div>
     </div>
     {% endif %}
 
-    <div class="attr-box">
-      <div class="attr-label">Inkomend</div>
-      <div class="attr-value">{{ n_in }}</div>
+    <div class="nw-attr-box">
+      <div class="nw-attr-label">Incoming</div>
+      <div class="nw-attr-value">{{ n_in }}</div>
     </div>
-    <div class="attr-box">
-      <div class="attr-label">Uitgaand</div>
-      <div class="attr-value">{{ n_out }}</div>
+    <div class="nw-attr-box">
+      <div class="nw-attr-label">Outgoing</div>
+      <div class="nw-attr-value">{{ n_out }}</div>
     </div>
   </div>
 
-  <div class="connections">
-    Verbonden met <strong>{{ n_in + n_out }}</strong> andere nodes
+  <div class="nw-connections">
+    Connected to <strong>{{ n_in + n_out }}</strong> other nodes
   </div>
 
 </div>

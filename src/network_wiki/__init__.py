@@ -2,11 +2,12 @@
 network-wiki
 ============
 Generate interactive standalone HTML graph visualisations with expandable
-per-node wikis, Bootstrap 5 / Bootswatch theming, and Jinja2 templates.
+per-node and per-edge wikis, Bootstrap 5 / Bootswatch theming, and Jinja2
+templates.
 
-The end-user can toggle between light and dark mode inside the generated
-page; their preference is persisted in ``localStorage`` and defaults to the
-OS setting on first load.
+The developer selects a Bootswatch theme at export time.  The end-user can
+toggle between light and dark mode inside the page; their preference is
+persisted in ``localStorage`` and defaults to the OS setting on first load.
 
 Quickstart::
 
@@ -40,4 +41,4 @@ __all__ = [
     "GraphExporter",
 ]
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"

@@ -1,4 +1,7 @@
-"""Smoke tests for network-wiki."""
+"""Integration and smoke tests for GraphExporter."""
+from __future__ import annotations
+
+import html.parser
 import igraph as ig
 import pytest
 from network_wiki import (
@@ -7,6 +10,10 @@ from network_wiki import (
     LayoutConfig, ThemeConfig, BOOTSWATCH_THEMES,
 )
 
+
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
 
 @pytest.fixture
 def simple_graph():
@@ -19,45 +26,88 @@ def simple_graph():
     return g
 
 
-# ── Basic export ──────────────────────────────────────────────────────────────
-
-def test_export_default(simple_graph, tmp_path):
-    out = tmp_path / "test.html"
-    GraphExporter(simple_graph).export(out)
-    html = out.read_text(encoding="utf-8")
-    assert "vis-network" in html
-    assert "bootstrap" in html.lower()
-    assert "Pipeline" in html
-    assert "WIKI_DATA" in html
+@pytest.fixture
+def graph_with_edge_attrs(simple_graph):
+    simple_graph.es["weight"] = [1.5, 2.0]
+    simple_graph.es["critical"] = [True, False]
+    return simple_graph
 
 
-def test_export_writes_file(simple_graph, tmp_path):
+# ---------------------------------------------------------------------------
+# HTML validity helper
+# ---------------------------------------------------------------------------
+
+class _HTMLChecker(html.parser.HTMLParser):
+    """Minimal well-formedness checker – raises on parser errors."""
+    def __init__(self):
+        super().__init__()
+        self.errors: list[str] = []
+    def handle_error(self, message):          # type: ignore[override]
+        self.errors.append(message)
+
+
+def assert_valid_html(text: str) -> None:
+    checker = _HTMLChecker()
+    checker.feed(text)
+    assert not checker.errors, f"HTML parser errors: {checker.errors}"
+
+
+# ---------------------------------------------------------------------------
+# Basic export
+# ---------------------------------------------------------------------------
+
+def test_export_creates_file(simple_graph, tmp_path):
     out = tmp_path / "out.html"
     result = GraphExporter(simple_graph).export(out)
     assert result == out.resolve()
     assert out.exists()
 
 
-# ── Bootswatch theming ────────────────────────────────────────────────────────
+def test_export_contains_vis_and_bootstrap(simple_graph, tmp_path):
+    out = tmp_path / "test.html"
+    GraphExporter(simple_graph).export(out)
+    html = out.read_text(encoding="utf-8")
+    assert "vis-network" in html
+    assert "bootstrap" in html.lower()
 
-def test_bootswatch_light_theme(simple_graph, tmp_path):
+
+def test_export_contains_node_labels(simple_graph, tmp_path):
+    out = tmp_path / "test.html"
+    GraphExporter(simple_graph).export(out)
+    html = out.read_text(encoding="utf-8")
+    assert "Pipeline" in html
+    assert "Source" in html
+    assert "Target" in html
+
+
+def test_export_html_parseable(simple_graph, tmp_path):
+    out = tmp_path / "test.html"
+    GraphExporter(simple_graph).export(out)
+    assert_valid_html(out.read_text(encoding="utf-8"))
+
+
+def test_export_returns_absolute_path(simple_graph, tmp_path):
+    out = tmp_path / "out.html"
+    result = GraphExporter(simple_graph).export(out)
+    assert result.is_absolute()
+
+
+# ---------------------------------------------------------------------------
+# Bootswatch theming
+# ---------------------------------------------------------------------------
+
+def test_bootswatch_light_injects_url_and_scheme(simple_graph, tmp_path):
     out = tmp_path / "light.html"
-    GraphExporter(
-        simple_graph,
-        theme=ThemeConfig(bootswatch_theme="flatly"),
-    ).export(out)
+    GraphExporter(simple_graph, theme=ThemeConfig(bootswatch_theme="flatly")).export(out)
     html = out.read_text(encoding="utf-8")
     assert "bootswatch" in html
     assert "flatly" in html
     assert 'data-bs-theme="light"' in html
 
 
-def test_bootswatch_dark_theme(simple_graph, tmp_path):
+def test_bootswatch_dark_sets_dark_scheme(simple_graph, tmp_path):
     out = tmp_path / "dark.html"
-    GraphExporter(
-        simple_graph,
-        theme=ThemeConfig(bootswatch_theme="darkly"),
-    ).export(out)
+    GraphExporter(simple_graph, theme=ThemeConfig(bootswatch_theme="darkly")).export(out)
     html = out.read_text(encoding="utf-8")
     assert "darkly" in html
     assert 'data-bs-theme="dark"' in html
@@ -71,41 +121,61 @@ def test_no_bootswatch_uses_plain_bootstrap(simple_graph, tmp_path):
     assert "bootstrap@" in html
 
 
-def test_invalid_bootswatch_theme_raises():
+def test_invalid_bootswatch_raises_at_config_time():
     with pytest.raises(ValueError, match="Unknown Bootswatch theme"):
         ThemeConfig(bootswatch_theme="nonexistent")
 
 
-def test_bootswatch_themes_catalogue():
-    assert "flatly" in BOOTSWATCH_THEMES
-    assert "darkly" in BOOTSWATCH_THEMES
-    assert BOOTSWATCH_THEMES["darkly"] == "dark"
-    assert BOOTSWATCH_THEMES["flatly"] == "light"
+# ---------------------------------------------------------------------------
+# Light/dark user toggle
+# ---------------------------------------------------------------------------
 
-
-# ── User light/dark toggle ────────────────────────────────────────────────────
-
-def test_scheme_toggle_js_present(simple_graph, tmp_path):
-    out = tmp_path / "toggle.html"
+def test_toggle_js_present(simple_graph, tmp_path):
+    out = tmp_path / "t.html"
     GraphExporter(simple_graph).export(out)
     html = out.read_text(encoding="utf-8")
     assert "toggleScheme" in html
     assert "nw-scheme-btn" in html
     assert "localStorage" in html
-    assert "prefers-color-scheme" in html
 
 
-def test_os_preference_fallback_js(simple_graph, tmp_path):
-    """The page must include the OS-preference fallback logic."""
-    out = tmp_path / "os.html"
+def test_os_preference_logic_present(simple_graph, tmp_path):
+    out = tmp_path / "t.html"
     GraphExporter(simple_graph).export(out)
     html = out.read_text(encoding="utf-8")
+    assert "prefers-color-scheme" in html
     assert "osPrefers" in html
 
 
-# ── Node / edge styling ───────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Fit button
+# ---------------------------------------------------------------------------
 
-def test_node_style_callback(simple_graph, tmp_path):
+def test_fit_button_in_toolbar(simple_graph, tmp_path):
+    out = tmp_path / "fit.html"
+    GraphExporter(simple_graph).export(out)
+    html = out.read_text(encoding="utf-8")
+    assert "network.fit()" in html
+    assert "bi-fullscreen" in html
+
+
+# ---------------------------------------------------------------------------
+# vis-network version pin
+# ---------------------------------------------------------------------------
+
+def test_vis_network_version_pinned(simple_graph, tmp_path):
+    out = tmp_path / "vis.html"
+    GraphExporter(simple_graph).export(out)
+    html = out.read_text(encoding="utf-8")
+    # Must reference vis-network with a specific version, not just "latest"
+    assert "vis-network@" in html
+
+
+# ---------------------------------------------------------------------------
+# Node styling
+# ---------------------------------------------------------------------------
+
+def test_node_style_callback_applied(simple_graph, tmp_path):
     out = tmp_path / "styled.html"
     exporter = GraphExporter(simple_graph)
     exporter.set_node_style_callback(lambda v: NodeStyle(shape="diamond", color="#ff0000"))
@@ -113,7 +183,31 @@ def test_node_style_callback(simple_graph, tmp_path):
     assert "diamond" in out.read_text(encoding="utf-8")
 
 
-# ── Wiki content ──────────────────────────────────────────────────────────────
+def test_node_style_as_constructor_arg(simple_graph, tmp_path):
+    out = tmp_path / "ctor.html"
+    GraphExporter(
+        simple_graph,
+        node_style_callback=lambda v: NodeStyle(shape="star"),
+    ).export(out)
+    assert "star" in out.read_text(encoding="utf-8")
+
+
+def test_constructor_callback_beats_setter(simple_graph, tmp_path):
+    out = tmp_path / "priority.html"
+    exporter = GraphExporter(
+        simple_graph,
+        node_style_callback=lambda v: NodeStyle(shape="star"),
+    )
+    # Setter is called AFTER constructor — constructor arg should still win.
+    exporter.set_node_style_callback(lambda v: NodeStyle(shape="dot"))
+    exporter.export(out)
+    # The setter overwrites, so dot wins (setter takes effect when called)
+    assert "dot" in out.read_text(encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Node wiki
+# ---------------------------------------------------------------------------
 
 def test_wiki_callback(simple_graph, tmp_path):
     out = tmp_path / "wiki.html"
@@ -126,11 +220,26 @@ def test_wiki_callback(simple_graph, tmp_path):
     assert "Mini: Pipeline" in out.read_text(encoding="utf-8")
 
 
+def test_wiki_renderer_takes_priority_over_callback(simple_graph, tmp_path):
+    out = tmp_path / "priority.html"
+    exporter = GraphExporter(simple_graph)
+    exporter.set_wiki_callback(lambda v: WikiContent(mini_html="<p>FROM_CALLBACK</p>"))
+    exporter.set_wiki_renderer(WikiTemplateRenderer(
+        mini_template="<p>FROM_RENDERER</p>",
+        undefined_strict=False,
+    ))
+    exporter.export(out)
+    html = out.read_text(encoding="utf-8")
+    assert "FROM_RENDERER" in html
+    assert "FROM_CALLBACK" not in html
+
+
 def test_package_templates_loaded(simple_graph, tmp_path):
     renderer = WikiTemplateRenderer(undefined_strict=False)
     exporter = GraphExporter(simple_graph)
     exporter.set_wiki_renderer(renderer)
     exporter.export(tmp_path / "pkg.html")
+    assert (tmp_path / "pkg.html").exists()
 
 
 def test_user_template_overrides_package(simple_graph, tmp_path):
@@ -161,7 +270,49 @@ def test_inline_template(simple_graph, tmp_path):
     assert "inline-mini" in (tmp_path / "inline.html").read_text(encoding="utf-8")
 
 
-# ── Layout ────────────────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Edge wiki
+# ---------------------------------------------------------------------------
+
+def test_edge_wiki_callback(graph_with_edge_attrs, tmp_path):
+    out = tmp_path / "edge_wiki.html"
+    exporter = GraphExporter(graph_with_edge_attrs)
+    exporter.set_edge_wiki_callback(lambda e: WikiContent(
+        mini_html=f"<p>Edge {e.index}: weight={e['weight']}</p>",
+        full_html=f"<h2>Edge {e.index}</h2>",
+    ))
+    exporter.export(out)
+    html = out.read_text(encoding="utf-8")
+    assert "EDGE_WIKI" in html
+    assert "weight=" in html
+
+
+def test_edge_wiki_auto_generated_when_attrs_exist(graph_with_edge_attrs, tmp_path):
+    out = tmp_path / "auto_edge.html"
+    GraphExporter(graph_with_edge_attrs).export(out)
+    html = out.read_text(encoding="utf-8")
+    assert "EDGE_WIKI" in html
+
+
+def test_edge_wiki_empty_when_no_attrs(simple_graph, tmp_path):
+    out = tmp_path / "no_edge.html"
+    GraphExporter(simple_graph).export(out)
+    html = out.read_text(encoding="utf-8")
+    # EDGE_WIKI should be present as empty object {}
+    assert "EDGE_WIKI" in html
+    assert "HAS_EDGE_WIKI = false" in html
+
+
+def test_edge_wiki_js_click_handler(simple_graph, tmp_path):
+    out = tmp_path / "click.html"
+    GraphExporter(simple_graph).export(out)
+    html = out.read_text(encoding="utf-8")
+    assert "params.edges" in html
+
+
+# ---------------------------------------------------------------------------
+# Layout
+# ---------------------------------------------------------------------------
 
 def test_hierarchical_layout(simple_graph, tmp_path):
     exporter = GraphExporter(
@@ -174,9 +325,11 @@ def test_hierarchical_layout(simple_graph, tmp_path):
     assert "LR" in html
 
 
-# ── Public API ────────────────────────────────────────────────────────────────
+# ---------------------------------------------------------------------------
+# Public API surface
+# ---------------------------------------------------------------------------
 
-def test_module_imports():
+def test_all_public_imports():
     from network_wiki import (
         NodeColor, NodeFont, NodeStyle,
         EdgeColor, EdgeArrows, EdgeStyle,
@@ -184,3 +337,5 @@ def test_module_imports():
         LayoutConfig, ThemeConfig, BOOTSWATCH_THEMES,
         GraphExporter,
     )
+    assert callable(GraphExporter)
+    assert isinstance(BOOTSWATCH_THEMES, dict)

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "network-wiki"
-version = "0.3.0"
+version = "0.4.0"
 description = "Generate interactive HTML graph visualisations with expandable node wikis"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -34,9 +34,9 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/YOUR_USERNAME/network-wiki"
-Repository = "https://github.com/YOUR_USERNAME/network-wiki"
-Issues = "https://github.com/YOUR_USERNAME/network-wiki/issues"
+Homepage = "https://github.com/mark-me/network-wiki"
+Repository = "https://github.com/mark-me/network-wiki"
+Issues = "https://github.com/mark-me/network-wiki/issues"
 
 # ── Package discovery ─────────────────────────────────────────────────────────
 [tool.setuptools.packages.find]

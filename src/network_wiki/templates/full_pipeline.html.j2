@@ -1,27 +1,28 @@
-{# full_pipeline.html.j2 — Uitgebreide wiki specifiek voor pipeline-nodes #}
+{# full_pipeline.html.j2 — Full-screen wiki for pipeline nodes #}
 <h2>🔄 {{ label }}</h2>
-<p>{{ attrs.description | default('Geen beschrijving beschikbaar.') }}</p>
+<p>{{ attrs.description | default('No description available.') }}</p>
 
-<h3>Pipeline-status</h3>
-<table>
-  <tr><th>Eigenschap</th><th>Waarde</th></tr>
-  <tr>
-    <td>Status</td>
-    <td>{% if attrs.status == 'actief' %}✅ Actief{% else %}⏸️ {{ attrs.status | capitalize }}{% endif %}</td>
-  </tr>
-  <tr><td>Eigenaar</td><td>{{ attrs.owner | default('—') }}</td></tr>
-  <tr><td>Gewicht</td><td>{{ attrs.weight | default('—') }}</td></tr>
+<h3>Pipeline status</h3>
+<table class="table table-sm table-striped">
+  <thead><tr><th>Property</th><th>Value</th></tr></thead>
+  <tbody>
+  <tr><td>Status</td><td>{{ attrs.status | default('—') | capitalize }}</td></tr>
+  <tr><td>Owner</td><td>{{ attrs.owner | default('—') }}</td></tr>
+  <tr><td>Weight</td><td>{{ attrs.weight | default('—') }}</td></tr>
+  </tbody>
 </table>
 
-<h3>Datastromen</h3>
-<table>
-  <tr><th>Richting</th><th>Aantal</th></tr>
-  <tr><td>⬅️ Bronnen (inkomend)</td><td>{{ n_in }}</td></tr>
-  <tr><td>➡️ Targets (uitgaand)</td><td>{{ n_out }}</td></tr>
+<h3>Data flows</h3>
+<table class="table table-sm table-striped">
+  <thead><tr><th>Direction</th><th>Count</th></tr></thead>
+  <tbody>
+  <tr><td>⬅️ Incoming sources</td><td>{{ n_in }}</td></tr>
+  <tr><td>➡️ Outgoing targets</td><td>{{ n_out }}</td></tr>
+  </tbody>
 </table>
 
 {% if neighbours %}
-<h3>Verbonden nodes</h3>
+<h3>Connected nodes</h3>
 <ul>
   {% for n in neighbours %}
   <li>{{ n }}</li>
@@ -31,5 +32,5 @@
 
 {% if project is defined %}
 <h3>Project</h3>
-<p><span class="tag">{{ project }}</span></p>
+<p><span class="badge text-bg-primary">{{ project }}</span></p>
 {% endif %}

@@ -14,7 +14,7 @@ pip install network-wiki
 Or, directly from GitHub:
 
 ```bash
-pip install git+https://github.com/YOUR_USERNAME/network-wiki.git
+pip install git+https://github.com/mark-me/network-wiki.git
 ```
 
 ## Quickstart

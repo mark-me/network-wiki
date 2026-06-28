@@ -1,4 +1,4 @@
-"""Wiki-inhoud en Jinja2-template rendering."""
+"""Wiki content dataclasses and Jinja2-based template rendering."""
 
 from __future__ import annotations
 
@@ -25,78 +25,77 @@ except ImportError:
 
 @dataclass
 class WikiContent:
-    """
-    Wiki-inhoud voor één node.
+    """HTML content for a single node's wiki.
 
-    Parameters
-    ----------
-    mini_html:
-        HTML voor het sidepanel (compact overzicht).
-        Als ``None``: automatisch gegenereerd op basis van vertex-attributen.
-    full_html:
-        HTML voor de volledige wiki-modal.
-        Als ``None``: de "Volledige wiki"-knop wordt verborgen.
+    Args:
+        mini_html: HTML shown in the collapsible side-panel (compact view).
+            When ``None`` the exporter auto-generates content from vertex
+            attributes.
+        full_html: HTML shown in the full-screen modal.
+            When ``None`` the "Full wiki" button is hidden for that node.
     """
+
     mini_html: Optional[str] = None
     full_html: Optional[str] = None
 
 
 class WikiTemplateRenderer:
-    """
-    Rendert mini- en full-wiki HTML via Jinja2-templates.
+    """Render mini- and full-wiki HTML via Jinja2 templates.
 
-    Elke template ontvangt de volgende context-variabelen:
+    Every template receives the following context variables:
 
-    =========== ============================================================
-    ``v``       igraph Vertex-object
-    ``attrs``   dict van alle vertex-attributen ``{naam: waarde}``
-    ``label``   display-naam van de node (str)
-    ``index``   vertex-index (int)
-    ``n_in``    aantal inkomende edges (int)
-    ``n_out``   aantal uitgaande edges (int)
-    ``neighbours`` lijst van namen van alle buurknopen (list[str])
-    ``graph``   de volledige igraph.Graph
-    =========== ============================================================
+    ============== ===========================================================
+    ``v``          The ``igraph.Vertex`` object.
+    ``attrs``      Dict of all vertex attributes: ``{name: value}``.
+    ``label``      Display name of the node (``str``).
+    ``index``      Vertex index (``int``).
+    ``n_in``       Number of incoming edges (``int``).
+    ``n_out``      Number of outgoing edges (``int``).
+    ``neighbours`` Names of all neighbouring nodes (``list[str]``).
+    ``graph``      The full ``igraph.Graph`` object.
+    ============== ===========================================================
 
-    Aanvullende sleutels die je via ``global_context`` meegeeft zijn ook
-    beschikbaar in elke template.
+    Additional keys supplied via ``global_context`` are available in every
+    template.
 
-    Templateresolutie-volgorde (eerste match wint):
+    **Template resolution order** (first match wins):
 
-    1. Per-type bestand  via ``*_template_files_by_type``
-    2. Per-type inline   via ``*_templates_by_type``
-    3. Standaard bestand via ``*_template_file``
-    4. Standaard inline  via ``*_template``
-    5. Gebundeld package-standaard (``mini_default.html.j2`` / ``full_default.html.j2``)
+    1. Per-type file   – ``*_template_files_by_type``
+    2. Per-type inline – ``*_templates_by_type``
+    3. Default file    – ``*_template_file``
+    4. Default inline  – ``*_template``
+    5. Bundled package fallback (``mini_default.html.j2`` / ``full_default.html.j2``)
 
-    Parameters
-    ----------
-    template_dir:
-        Map met externe ``.html.j2``-bestanden. Als ``None``, worden alleen
-        inline-templates en package-standaarden gebruikt.
-    mini_template:
-        Inline Jinja2-templatestring voor de mini-wiki.
-    full_template:
-        Inline Jinja2-templatestring voor de full-wiki.
-    mini_template_file:
-        Bestandsnaam (relatief aan ``template_dir``) voor de mini-wiki template.
-    full_template_file:
-        Bestandsnaam (relatief aan ``template_dir``) voor de full-wiki template.
-    type_attr:
-        Vertex-attribuut dat het type bepaalt voor per-type templates (standaard ``"type"``).
-    mini_templates_by_type:
-        Inline mini-templates per type: ``{"source": "...", "target": "..."}``.
-    full_templates_by_type:
-        Inline full-templates per type: ``{"source": "...", "target": "..."}``.
-    mini_template_files_by_type:
-        Bestandsnamen van mini-templates per type.
-    full_template_files_by_type:
-        Bestandsnamen van full-templates per type.
-    global_context:
-        Extra variabelen beschikbaar in elke template.
-    undefined_strict:
-        Als ``True``: Jinja2 gooit een fout bij onbekende variabelen.
-        Aanbevolen tijdens ontwikkeling.
+    Args:
+        template_dir: Directory containing user-supplied ``.html.j2`` files.
+            When ``None``, only inline strings and package defaults are used.
+        mini_template: Inline Jinja2 string for the mini-wiki (side-panel).
+        full_template: Inline Jinja2 string for the full-wiki (modal).
+        mini_template_file: Filename (relative to *template_dir*) for the
+            mini-wiki template.
+        full_template_file: Filename (relative to *template_dir*) for the
+            full-wiki template.
+        type_attr: Vertex attribute used to select per-type templates
+            (default ``"type"``).
+        mini_templates_by_type: Inline mini-templates keyed by type string.
+        full_templates_by_type: Inline full-templates keyed by type string.
+        mini_template_files_by_type: Filenames of mini-templates keyed by type.
+        full_template_files_by_type: Filenames of full-templates keyed by type.
+        global_context: Extra variables available in every template.
+        undefined_strict: When ``True``, Jinja2 raises on unknown variables.
+            Recommended during development.
+
+    Example::
+
+        renderer = WikiTemplateRenderer(
+            template_dir="templates/wiki",
+            full_template_file="full_default.html.j2",
+            full_template_files_by_type={
+                "pipeline": "full_pipeline.html.j2",
+            },
+            global_context={"project": "ETL v2"},
+        )
+        exporter.set_wiki_renderer(renderer)
     """
 
     def __init__(
@@ -116,29 +115,26 @@ class WikiTemplateRenderer:
     ):
         if not _JINJA2_AVAILABLE:
             raise ImportError(
-                "Jinja2 is vereist voor WikiTemplateRenderer. "
-                "Installeer via: pip install jinja2"
+                "Jinja2 is required for WikiTemplateRenderer. "
+                "Install it with: pip install jinja2"
             )
 
         self.type_attr = type_attr
         self.global_context = global_context or {}
 
-        # ── Loader-volgorde: gebruikersbestanden -> inline -> package-standaard ─
+        # Loader chain: user files → inline strings → bundled package templates.
         loaders = []
 
-        # 1. Gebruiker: externe map (hoogste prioriteit)
         if template_dir is not None:
             self._template_dir = Path(template_dir).resolve()
             loaders.append(FileSystemLoader(str(self._template_dir)))
         else:
             self._template_dir = None
 
-        # 2. Gebruiker: inline strings
         self._inline_store: dict[str, str] = {}
         loaders.append(DictLoader(self._inline_store))
 
-        # 3. Package: meegeleverde standaard-templates (laagste prioriteit)
-        #    importlib.resources werkt zowel geinstalleerd (pip) als in-place.
+        # importlib.resources works both when installed (pip) and in-place (src layout).
         _pkg_templates = _pkg_res.files("network_wiki").joinpath("templates")
         loaders.append(FileSystemLoader(str(_pkg_templates)))
 
@@ -150,7 +146,6 @@ class WikiTemplateRenderer:
             lstrip_blocks=True,
         )
 
-        # ── Template-registratie ──────────────────────────────────────────────
         self._mini_inline: Optional[str] = None
         self._full_inline: Optional[str] = None
         self._mini_file: Optional[str] = mini_template_file
@@ -171,11 +166,13 @@ class WikiTemplateRenderer:
         for vtype, tmpl in self._full_by_type.items():
             self._inline_store[f"__full_{vtype}__"] = tmpl
 
-    # ── Context ───────────────────────────────────────────────────────────────
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
 
     def _build_context(self, vertex, graph) -> dict:
-        """Stel de volledige template-context samen voor een vertex."""
-        attrs = {}
+        """Assemble the full Jinja2 context dict for *vertex*."""
+        attrs: dict = {}
         for attr in graph.vertex_attributes():
             try:
                 attrs[attr] = vertex[attr]
@@ -190,7 +187,7 @@ class WikiTemplateRenderer:
         n_in = len(graph.predecessors(vertex.index))
         n_out = len(graph.successors(vertex.index))
 
-        neighbours = []
+        neighbours: list[str] = []
         for i in graph.neighbors(vertex.index):
             nv = graph.vs[i]
             for key in ("name", "label"):
@@ -217,8 +214,6 @@ class WikiTemplateRenderer:
         ctx.update(self.global_context)
         return ctx
 
-    # ── Template-resolutie ───────────────────────────────────────────────────
-
     def _resolve(
         self,
         vtype: Optional[str],
@@ -229,9 +224,9 @@ class WikiTemplateRenderer:
         prefix: str,
         package_fallback: str,
     ) -> str:
-        """
-        Bepaal de template-naam in prioriteitsvolgorde.
-        Geeft altijd een naam terug (uiterlijk de package-fallback).
+        """Return the template name to use, in priority order.
+
+        Always returns at least the package fallback name.
         """
         if vtype:
             if vtype in by_type_inline:
@@ -244,20 +239,19 @@ class WikiTemplateRenderer:
             return default_file
         return package_fallback
 
-    # ── Publieke methode ──────────────────────────────────────────────────────
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
 
     def render(self, vertex, graph) -> WikiContent:
-        """
-        Render mini- en full-HTML voor een vertex.
+        """Render mini- and full-wiki HTML for *vertex*.
 
-        Parameters
-        ----------
-        vertex : igraph.Vertex
-        graph  : igraph.Graph
+        Args:
+            vertex: ``igraph.Vertex`` to render wiki content for.
+            graph: The parent ``igraph.Graph``.
 
-        Returns
-        -------
-        WikiContent
+        Returns:
+            A :class:`WikiContent` with ``mini_html`` and ``full_html`` set.
         """
         ctx = self._build_context(vertex, graph)
         vtype = ctx["attrs"].get(self.type_attr)
@@ -281,25 +275,29 @@ class WikiTemplateRenderer:
         )
 
 
+# ---------------------------------------------------------------------------
+# Helpers used by GraphExporter when no wiki renderer/callback is set
+# ---------------------------------------------------------------------------
 
 def _vertex_label(vertex, fallback_index: int) -> str:
-    for key in ('name', 'label'):
+    """Return the display label for *vertex*, falling back to ``"Node <index>"``."""
+    for key in ("name", "label"):
         try:
             val = vertex[key]
             if val is not None:
                 return str(val)
         except (KeyError, IndexError):
             pass
-    return f'Node {fallback_index}'
+    return f"Node {fallback_index}"
 
 
 def _auto_wiki(vertex, graph) -> WikiContent:
+    """Auto-generate :class:`WikiContent` from vertex attributes.
+
+    Used when neither a :class:`WikiTemplateRenderer` nor a wiki callback is
+    configured on the exporter.
     """
-    Genereer automatisch een WikiContent op basis van vertex-attributen.
-    Wordt gebruikt als er geen renderer of callback is ingesteld.
-    """
-    attrs = {k: vertex[k] for k in graph.vertex_attributes()
-             if vertex[k] is not None}
+    attrs = {k: vertex[k] for k in graph.vertex_attributes() if vertex[k] is not None}
     label = next(
         (str(attrs[k]) for k in ("name", "label") if attrs.get(k) is not None),
         f"Node {vertex.index}",
@@ -319,7 +317,7 @@ def _auto_wiki(vertex, graph) -> WikiContent:
         f'<div class="nw-node-type">Node {vertex.index}</div>'
         f'<div class="nw-attr-grid">{attr_boxes}</div>'
         f'<div class="nw-connections">'
-        f'Inkomend: <strong>{n_in}</strong> &nbsp;|&nbsp; Uitgaand: <strong>{n_out}</strong>'
+        f'Incoming: <strong>{n_in}</strong>&nbsp;|&nbsp;Outgoing: <strong>{n_out}</strong>'
         f'</div></div>'
     )
 
@@ -335,9 +333,9 @@ def _auto_wiki(vertex, graph) -> WikiContent:
     full = (
         f"<h2>{html_mod.escape(label)}</h2>"
         f"<table class='table table-sm table-striped'>"
-        f"<thead><tr><th>Attribuut</th><th>Waarde</th></tr></thead>"
+        f"<thead><tr><th>Attribute</th><th>Value</th></tr></thead>"
         f"<tbody>{full_rows}</tbody></table>"
-        f"<h5 class='mt-3'>Verbonden nodes</h5>"
-        f"<ul>{nbr_items or '<li><em>Geen</em></li>'}</ul>"
+        f"<h5 class='mt-3'>Connected nodes</h5>"
+        f"<ul>{nbr_items or '<li><em>None</em></li>'}</ul>"
     )
     return WikiContent(mini_html=mini, full_html=full)

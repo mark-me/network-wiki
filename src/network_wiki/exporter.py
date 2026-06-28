@@ -1,5 +1,4 @@
-"""GraphExporter — orchestrates node/edge styling, wiki rendering, and HTML output."""
-
+"""GraphExporter – orchestrates node/edge styling, wiki rendering, and HTML output."""
 
 from __future__ import annotations
 
@@ -18,16 +17,45 @@ from .wiki import WikiContent, WikiTemplateRenderer, _auto_wiki
 
 
 class GraphExporter:
-    """Convert an igraph.Graph into an interactive standalone HTML page.
-    Provide an explorable graph view with per-node wiki content and theming controls.
+    """Convert an ``igraph.Graph`` into a standalone interactive HTML page.
+
+    The page embeds a vis.js graph with a Bootstrap 5 UI, a collapsible
+    wiki side-panel per node, and a full-screen wiki modal.  The developer
+    selects a Bootswatch theme at export time; the end-user can toggle
+    between light and dark mode inside the page.
 
     Args:
-        graph: The graph to export. Each vertex must at least provide a "name" attribute.
-        title: Title for the generated page.
-        layout: Physics and layout configuration for the visualization.
-        theme: Theme configuration (accent color, panel width, default color scheme).
-        default_node_style: Fallback style for nodes when no callback style is provided.
-        default_edge_style: Fallback style for edges when no callback style is provided.
+        graph: The graph to export.  Each vertex should provide at least a
+            ``"name"`` attribute.
+        title: Title displayed in the browser tab and toolbar.
+        layout: Physics and layout configuration.  Defaults to
+            :class:`LayoutConfig` with ``forceAtlas2Based`` physics.
+        theme: Visual theme.  Defaults to :class:`ThemeConfig` (plain
+            Bootstrap, no Bootswatch).
+        default_node_style: Fallback :class:`NodeStyle` used when no
+            node-style callback is registered.
+        default_edge_style: Fallback :class:`EdgeStyle` used when no
+            edge-style callback is registered.
+
+    Example::
+
+        import igraph as ig
+        from network_wiki import GraphExporter, NodeStyle, ThemeConfig
+
+        g = ig.Graph(directed=True)
+        g.add_vertices(3)
+        g.vs["name"] = ["Source", "Pipeline", "Target"]
+        g.add_edges([(0, 1), (1, 2)])
+
+        exporter = GraphExporter(
+            g,
+            title="ETL Overview",
+            theme=ThemeConfig(bootswatch_theme="flatly"),
+        )
+        exporter.set_node_style_callback(
+            lambda v: NodeStyle(color="#2ecc71" if v["name"] == "Pipeline" else "#3498db")
+        )
+        exporter.export("etl.html")
     """
 
     def __init__(
@@ -39,17 +67,6 @@ class GraphExporter:
         default_node_style: Optional[NodeStyle] = None,
         default_edge_style: Optional[EdgeStyle] = None,
     ):
-        """Initialize a GraphExporter with graph, layout, theme and style defaults.
-        Prepare callback hooks and configuration used to render the HTML wiki page.
-
-        Args:
-            graph: The ``igraph.Graph`` instance that will be exported.
-            title: The ``str`` title shown on the generated HTML page.
-            layout: Optional ``LayoutConfig``; defaults to a standard layout.
-            theme: Optional ``ThemeConfig``; defaults to a standard theme.
-            default_node_style: Optional ``NodeStyle`` used when no node-style callback is set.
-            default_edge_style: Optional ``EdgeStyle`` used when no edge-style callback is set.
-        """
         self.graph = graph
         self.title = title
         self.layout = layout or LayoutConfig()
@@ -62,57 +79,56 @@ class GraphExporter:
         self._wiki_cb: Optional[Callable] = None
         self._wiki_renderer: Optional[WikiTemplateRenderer] = None
 
-    # ── Callback setters ──────────────────────────────────────────────────────
+    # ------------------------------------------------------------------
+    # Callback registration
+    # ------------------------------------------------------------------
 
     def set_node_style_callback(self, cb: Callable) -> None:
-        """Register a callback that determines the visual style for each node.
-        Use this to customize node appearance beyond the default node style.
+        """Register a callback that returns a :class:`NodeStyle` for each vertex.
 
         Args:
-            cb: A callable that receives a vertex and returns a ``NodeStyle`` instance.
+            cb: ``(igraph.Vertex) -> NodeStyle``
         """
-
         self._node_style_cb = cb
 
     def set_edge_style_callback(self, cb: Callable) -> None:
-        """Register a callback that determines the visual style for each edge.
-        Use this to customize edge appearance beyond the default edge style.
+        """Register a callback that returns an :class:`EdgeStyle` for each edge.
 
         Args:
-            cb: A callable that receives an edge and returns an ``EdgeStyle`` instance.
+            cb: ``(igraph.Edge) -> EdgeStyle``
         """
         self._edge_style_cb = cb
 
     def set_wiki_callback(self, cb: Callable) -> None:
-        """
-        Register a callback that determines the wiki content for each vertex.
-        Ignored if ``set_wiki_renderer`` is also called.
+        """Register a callback that returns :class:`WikiContent` for each vertex.
+
+        Ignored when :meth:`set_wiki_renderer` is also called (renderer takes
+        priority).
 
         Args:
-            cb: A callable that receives a vertex and returns a ``WikiContent`` instance.
+            cb: ``(igraph.Vertex) -> WikiContent``
         """
         self._wiki_cb = cb
 
     def set_wiki_renderer(self, renderer: WikiTemplateRenderer) -> None:
-        """Set a template-based wiki renderer for node-specific content.
-        Overrides the wiki callback when both are configured.
+        """Attach a Jinja2-based :class:`WikiTemplateRenderer`.
+
+        Takes priority over any callback registered with :meth:`set_wiki_callback`.
 
         Args:
-            renderer: The template renderer used to generate wiki content per vertex.
+            renderer: Configured template renderer instance.
         """
         self._wiki_renderer = renderer
 
-    # ── Interne helpers ───────────────────────────────────────────────────────
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
 
     def _get_label(self, vertex) -> str:
-        """Determine a readable label text for a vertex based on known attributes.
-        Fall back to a generated name when no suitable attribute is available.
+        """Return a human-readable label for *vertex*.
 
-        Args:
-            vertex: The vertex for which a label should be determined.
-
-        Returns:
-            str: The chosen label text for the vertex.
+        Tries the ``"name"`` attribute first, then ``"label"``, and falls back
+        to ``"Node <index>"``.
         """
         for attr in ("name", "label"):
             with contextlib.suppress(KeyError, IndexError):
@@ -122,12 +138,12 @@ class GraphExporter:
         return f"Node {vertex.index}"
 
     def _build_nodes(self) -> tuple[list[dict], dict[int, WikiContent]]:
-        """Construct the node payload for the visualization and associated wiki content.
-        Combine labels, styles and rendered wiki HTML for each vertex in the graph.
+        """Build the vis.js node list and the wiki-content map.
 
         Returns:
-            tuple[list[dict], dict[int, WikiContent]]: A list of node dictionaries for vis.js,
-                and a mapping from vertex id to its ``WikiContent``.
+            A tuple of ``(vis_nodes, wiki_map)`` where *vis_nodes* is a list
+            of node dicts for vis.js and *wiki_map* maps vertex ids to their
+            :class:`WikiContent`.
         """
         vis_nodes: list[dict] = []
         wiki_map: dict[int, WikiContent] = {}
@@ -153,11 +169,10 @@ class GraphExporter:
         return vis_nodes, wiki_map
 
     def _build_edges(self) -> list[dict]:
-        """Assemble the edge payload for the visualization library.
-        Apply either callback-provided styles or the default edge style to each edge.
+        """Build the vis.js edge list.
 
         Returns:
-            list[dict]: A list of edge dictionaries formatted for the vis.js graph.
+            A list of edge dicts formatted for vis.js.
         """
         result = []
         for e in self.graph.es:
@@ -169,17 +184,19 @@ class GraphExporter:
             result.append(style.to_vis(e.source, e.target))
         return result
 
-    # ── Export ────────────────────────────────────────────────────────────────
+    # ------------------------------------------------------------------
+    # Export
+    # ------------------------------------------------------------------
 
     def export(self, path: str | Path = "graph_wiki.html") -> Path:
-        """Generate the standalone HTML graph wiki page and write it to disk.
-        Build the visualization, wiki payloads and layout configuration before saving.
+        """Render the HTML page and write it to *path*.
 
         Args:
-            path: The ``str`` or ``Path`` destination for the HTML file, relative or absolute.
+            path: Destination file path (``str`` or :class:`~pathlib.Path`).
+                Created or overwritten; parent directories must exist.
 
         Returns:
-            Path: The absolute path to the generated HTML file.
+            The resolved absolute :class:`~pathlib.Path` of the written file.
         """
         vis_nodes, wiki_map = self._build_nodes()
         vis_edges = self._build_edges()
@@ -196,13 +213,14 @@ class GraphExporter:
         }
 
         t = self.theme
-        page_tmpl_path = _pkg_res.files("network_wiki").joinpath("templates")
-        env = Environment(loader=FileSystemLoader(str(page_tmpl_path)))
+        tmpl_path = _pkg_res.files("network_wiki").joinpath("templates")
+        env = Environment(loader=FileSystemLoader(str(tmpl_path)))
         html = env.get_template("page.html.j2").render(
             title=self.title,
+            css_url=t.css_url,
             accent_color=t.accent_color,
             panel_width=t.panel_width_px,
-            color_scheme=t.default_color_scheme,
+            base_scheme=t.base_scheme,
             lang=t.lang,
             nodes_json=json.dumps(vis_nodes, ensure_ascii=False),
             edges_json=json.dumps(vis_edges, ensure_ascii=False),
@@ -212,5 +230,5 @@ class GraphExporter:
 
         out = Path(path).resolve()
         out.write_text(html, encoding="utf-8")
-        print(f"Geexporteerd naar: {out}")
+        print(f"Exported to: {out}")
         return out

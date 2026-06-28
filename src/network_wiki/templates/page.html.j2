@@ -1,91 +1,79 @@
 {#
-  page.html.j2 — Hoofd-paginatemplate voor network-wiki
-  =====================================================
-  Variabelen (ingevuld door GraphExporter):
-    title         – paginatitel (str)
-    accent_color  – CSS-accentkleur (str, hex)
-    panel_width   – breedte van het sidepanel in px (int)
-    color_scheme  – "auto" | "light" | "dark"
-    lang          – HTML lang-attribuut (str)
-    nodes_json    – vis.js node-array als JSON-string
-    edges_json    – vis.js edge-array als JSON-string
-    wiki_json     – wiki-data-object als JSON-string
-    layout_json   – vis.js network-opties als JSON-string
+  page.html.j2 — Main page template for network-wiki
+  ===================================================
+  Variables supplied by GraphExporter.export():
+    title           – page title (str)
+    css_url         – Bootstrap or Bootswatch CDN URL (str)
+    accent_color    – CSS accent colour, e.g. "#0d6efd" (str)
+    panel_width     – side-panel width in pixels (int)
+    base_scheme     – theme base scheme: "light" | "dark" (str)
+    lang            – HTML lang attribute (str)
+    nodes_json      – vis.js node array as a JSON string
+    edges_json      – vis.js edge array as a JSON string
+    wiki_json       – wiki-data object as a JSON string
+    layout_json     – vis.js network options as a JSON string
 #}
 <!DOCTYPE html>
-<html lang="{{ lang }}" data-bs-theme="{{ color_scheme }}">
+<html lang="{{ lang }}" data-bs-theme="{{ base_scheme }}">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ title }}</title>
 
-  {# Bootstrap 5 CSS #}
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-    rel="stylesheet"
-    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
-    crossorigin="anonymous"
-  >
-  {# Bootstrap Icons #}
+  {# Bootstrap / Bootswatch CSS chosen by the developer #}
+  <link id="nw-bs-css" href="{{ css_url }}" rel="stylesheet">
+
+  {# Bootstrap Icons – theme-independent #}
   <link
     href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
     rel="stylesheet"
   >
+
   {# vis-network #}
   <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
 
   <style>
-    /* ── Accent colour via CSS custom property ── */
+    /* ── Custom properties ────────────────────────────────────────────── */
     :root {
-      --nw-accent:        {{ accent_color }};
-      --nw-panel-width:   {{ panel_width }}px;
+      --nw-accent:      {{ accent_color }};
+      --nw-panel-width: {{ panel_width }}px;
     }
 
-    /* Override Bootstrap primary with the accent colour */
-    [data-bs-theme="light"],
-    [data-bs-theme="dark"],
-    :root {
-      --bs-primary:       var(--nw-accent);
-      --bs-primary-rgb:   /* fallback — Bootstrap computes this from the hex */ 13, 110, 253;
-      --bs-link-color:    var(--nw-accent);
-    }
-
-    /* ── Layout ── */
+    /* ── Full-screen layout ───────────────────────────────────────────── */
     html, body { height: 100%; overflow: hidden; }
 
     #nw-graph-container {
       position: fixed;
       inset: 0;
-      /* Shrink right edge when panel is open */
-      right: 0;
+      padding-top: 44px;          /* clear the toolbar */
       transition: right 0.3s ease;
     }
-    #nw-graph-container.panel-open {
-      right: var(--nw-panel-width);
-    }
+    #nw-graph-container.panel-open { right: var(--nw-panel-width); }
 
-    /* ── Toolbar ── */
+    /* ── Toolbar ──────────────────────────────────────────────────────── */
     #nw-toolbar {
       position: fixed;
       top: 0; left: 0; right: 0;
       z-index: 50;
-      /* Semi-transparent so graph shows through */
-      background: color-mix(in srgb, var(--bs-body-bg) 85%, transparent);
+      height: 44px;
+      background: color-mix(in srgb, var(--bs-body-bg) 88%, transparent);
       backdrop-filter: blur(6px);
       border-bottom: 1px solid var(--bs-border-color);
-      padding: 6px 14px;
+      padding: 0 14px;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
-    #nw-toolbar .nw-title {
+    .nw-title {
       font-weight: 600;
       font-size: 0.95rem;
-      color: var(--bs-body-color);
       margin-right: auto;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    /* ── Side panel ── */
+    /* ── Side panel ───────────────────────────────────────────────────── */
     #nw-wiki-panel {
       position: fixed;
       top: 0; right: 0;
@@ -100,9 +88,8 @@
       background: var(--bs-body-bg);
       box-shadow: -4px 0 24px rgba(0,0,0,.15);
     }
-    #nw-wiki-panel.open {
-      transform: translateX(0);
-    }
+    #nw-wiki-panel.open { transform: translateX(0); }
+
     #nw-panel-header {
       flex-shrink: 0;
       padding: 10px 14px;
@@ -121,13 +108,9 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    #nw-panel-body {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
-    }
+    #nw-panel-body { flex: 1; overflow-y: auto; padding: 16px; }
 
-    /* ── Mini-wiki helpers (compatible met Bootstrap én custom templates) ── */
+    /* ── Mini-wiki helpers ────────────────────────────────────────────── */
     .nw-node-type {
       font-size: .7rem;
       text-transform: uppercase;
@@ -135,17 +118,8 @@
       color: var(--bs-secondary-color);
       margin-bottom: 6px;
     }
-    .nw-node-desc {
-      font-size: .9rem;
-      line-height: 1.6;
-      margin-bottom: 12px;
-    }
-    .nw-attr-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
+    .nw-node-desc  { font-size: .9rem; line-height: 1.6; margin-bottom: 12px; }
+    .nw-attr-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
     .nw-attr-box {
       background: var(--bs-tertiary-bg);
       border-radius: 6px;
@@ -158,50 +132,35 @@
       letter-spacing: .05em;
       color: var(--bs-secondary-color);
     }
-    .nw-attr-value {
-      font-size: .95rem;
-      font-weight: 600;
-    }
-    .nw-connections {
-      font-size: .85rem;
-      color: var(--bs-secondary-color);
-    }
+    .nw-attr-value { font-size: .95rem; font-weight: 600; }
+    .nw-connections { font-size: .85rem; color: var(--bs-secondary-color); }
     .nw-connections strong { color: var(--nw-accent); }
 
-    /* ── Modal overrides ── */
-    .nw-modal-title { color: var(--nw-accent); }
-    .modal-header { border-bottom-color: var(--bs-border-color); }
-    .modal-footer { border-top-color: var(--bs-border-color); }
-
-    /* ── Wiki-body typography ── */
+    /* ── Wiki-body typography ─────────────────────────────────────────── */
     .nw-wiki-body h2 { color: var(--nw-accent); margin-top: 1.2rem; }
     .nw-wiki-body h3 { color: var(--bs-secondary-color); margin-top: 1rem; }
-    .nw-wiki-body .badge { background-color: var(--nw-accent) !important; }
-
-    /* ── Theme toggle button ── */
-    #nw-theme-toggle { font-size: .85rem; }
+    .nw-modal-title  { color: var(--nw-accent); }
   </style>
 </head>
 <body>
 
-{# ── Toolbar ────────────────────────────────────────────────────────────── #}
+{# ── Toolbar ─────────────────────────────────────────────────────────────── #}
 <div id="nw-toolbar">
   <span class="nw-title">{{ title }}</span>
 
+  {# Light / dark toggle – controlled by the user ─────────────────────────── #}
   <button
     class="btn btn-sm btn-outline-secondary"
-    id="nw-theme-toggle"
-    title="Schakel light/dark"
-    onclick="toggleTheme()"
-  >
-    <i class="bi bi-circle-half" id="nw-theme-icon"></i>
-  </button>
+    id="nw-scheme-btn"
+    title="Toggle light / dark"
+    onclick="toggleScheme()"
+  ><i class="bi bi-circle-half" id="nw-scheme-icon"></i></button>
 </div>
 
-{# ── Graph canvas ────────────────────────────────────────────────────────── #}
-<div id="nw-graph-container" style="padding-top:44px;"></div>
+{# ── Graph canvas ─────────────────────────────────────────────────────────── #}
+<div id="nw-graph-container"></div>
 
-{# ── Side panel ──────────────────────────────────────────────────────────── #}
+{# ── Side panel ───────────────────────────────────────────────────────────── #}
 <div id="nw-wiki-panel">
   <div id="nw-panel-header">
     <span id="nw-panel-title">—</span>
@@ -210,46 +169,32 @@
       id="nw-btn-full-wiki"
       onclick="openFullWiki()"
       style="display:none;"
-    >
-      <i class="bi bi-book"></i> Wiki
-    </button>
+    ><i class="bi bi-book"></i> Wiki</button>
     <button
       class="btn btn-sm btn-outline-secondary"
       onclick="closePanel()"
-      title="Sluiten"
-    >
-      <i class="bi bi-x-lg"></i>
-    </button>
+      title="Close"
+    ><i class="bi bi-x-lg"></i></button>
   </div>
   <div id="nw-panel-body" class="nw-wiki-body"></div>
 </div>
 
-{# ── Full-wiki modal (Bootstrap 5) ──────────────────────────────────────── #}
-<div
-  class="modal fade"
-  id="nw-wiki-modal"
-  tabindex="-1"
-  aria-labelledby="nw-wiki-modal-label"
-  aria-hidden="true"
->
+{# ── Full-wiki modal ───────────────────────────────────────────────────────── #}
+<div class="modal fade" id="nw-wiki-modal" tabindex="-1"
+     aria-labelledby="nw-wiki-modal-label" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title nw-modal-title" id="nw-wiki-modal-label">Wiki</h5>
-        <button
-          type="button"
-          class="btn-close"
-          data-bs-dismiss="modal"
-          aria-label="Sluiten"
-        ></button>
+        <button type="button" class="btn-close"
+                data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body nw-wiki-body" id="nw-wiki-modal-body">
-      </div>
+      <div class="modal-body nw-wiki-body" id="nw-wiki-modal-body"></div>
     </div>
   </div>
 </div>
 
-{# ── Bootstrap 5 JS ──────────────────────────────────────────────────────── #}
+{# ── Bootstrap JS ─────────────────────────────────────────────────────────── #}
 <script
   src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
   integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmHN9e0b6h4hm6S1oG2CzXqJJnn2X"
@@ -257,24 +202,27 @@
 ></script>
 
 <script>
-// ── Data (gegenereerd door Python) ──────────────────────────────────────────
+// ── Static data injected by Python ───────────────────────────────────────────
 const WIKI_DATA  = {{ wiki_json }};
 const VIS_NODES  = {{ nodes_json }};
 const VIS_EDGES  = {{ edges_json }};
 const LAYOUT_CFG = {{ layout_json }};
 
-// ── Graph ───────────────────────────────────────────────────────────────────
+// Base colour scheme determined by the developer's theme choice.
+// The user's toggle overrides this at runtime and persists in localStorage.
+const BASE_SCHEME = "{{ base_scheme }}";
+
+// ── Graph ─────────────────────────────────────────────────────────────────────
 const network = new vis.Network(
   document.getElementById("nw-graph-container"),
   { nodes: new vis.DataSet(VIS_NODES), edges: new vis.DataSet(VIS_EDGES) },
   LAYOUT_CFG
 );
 
-// ── State ────────────────────────────────────────────────────────────────────
 let currentNodeId = null;
 const bsModal = new bootstrap.Modal(document.getElementById("nw-wiki-modal"));
 
-// ── Panel ────────────────────────────────────────────────────────────────────
+// ── Panel ─────────────────────────────────────────────────────────────────────
 network.on("click", params => {
   if (params.nodes.length > 0) openPanel(params.nodes[0]);
   else if (params.edges.length === 0) closePanel();
@@ -284,14 +232,10 @@ function openPanel(id) {
   currentNodeId = id;
   const data = WIKI_DATA[id];
   if (!data) return;
-
   document.getElementById("nw-panel-title").textContent = data.label;
   document.getElementById("nw-panel-body").innerHTML =
-    data.mini || "<em class='text-secondary'>Geen wiki beschikbaar.</em>";
-
-  const btnFull = document.getElementById("nw-btn-full-wiki");
-  btnFull.style.display = data.full ? "" : "none";
-
+    data.mini || "<em class='text-secondary'>No wiki content available.</em>";
+  document.getElementById("nw-btn-full-wiki").style.display = data.full ? "" : "none";
   document.getElementById("nw-wiki-panel").classList.add("open");
   document.getElementById("nw-graph-container").classList.add("panel-open");
 }
@@ -311,44 +255,47 @@ function openFullWiki() {
   bsModal.show();
 }
 
-// ── Keyboard shortcuts ───────────────────────────────────────────────────────
 document.addEventListener("keydown", e => {
   if (e.key === "Escape") { bsModal.hide(); closePanel(); }
 });
 
-// ── Light / dark theme toggle ────────────────────────────────────────────────
-const SCHEME_KEY = "nw-color-scheme";
-const SCHEMES = ["auto", "light", "dark"];
-const ICONS   = { auto: "bi-circle-half", light: "bi-sun-fill", dark: "bi-moon-fill" };
+// ── Light / dark scheme toggle ────────────────────────────────────────────────
+//
+// Priority order (highest wins):
+//   1. User's explicit choice, saved in localStorage
+//   2. OS preference (prefers-color-scheme)
+//   3. Base scheme of the developer-selected Bootswatch theme
+//
+const SCHEME_KEY = "nw-scheme";
+const ICONS = { light: "bi-sun-fill", dark: "bi-moon-fill" };
 
-function resolveScheme(scheme) {
-  if (scheme !== "auto") return scheme;
+function osPrefers() {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
-function applyScheme(scheme) {
-  document.documentElement.setAttribute("data-bs-theme", resolveScheme(scheme));
-  const icon = document.getElementById("nw-theme-icon");
-  icon.className = "bi " + (ICONS[scheme] || ICONS.auto);
+function activeScheme() {
+  // Explicit user choice beats everything; OS preference beats theme default.
+  return localStorage.getItem(SCHEME_KEY) || osPrefers();
 }
 
-function toggleTheme() {
-  const current = localStorage.getItem(SCHEME_KEY) || "{{ color_scheme }}";
-  const next = SCHEMES[(SCHEMES.indexOf(current) + 1) % SCHEMES.length];
+function applyScheme(scheme) {
+  document.documentElement.setAttribute("data-bs-theme", scheme);
+  document.getElementById("nw-scheme-icon").className =
+    "bi " + (ICONS[scheme] || "bi-circle-half");
+}
+
+function toggleScheme() {
+  const next = activeScheme() === "light" ? "dark" : "light";
   localStorage.setItem(SCHEME_KEY, next);
   applyScheme(next);
 }
 
-// On load: respect saved preference, then default
-(function () {
-  const saved = localStorage.getItem(SCHEME_KEY) || "{{ color_scheme }}";
-  applyScheme(saved);
-})();
+// Apply on load.
+applyScheme(activeScheme());
 
-// Respond to OS preference changes when scheme is "auto"
+// Keep in sync when the user changes the OS setting (only when no explicit choice is stored).
 window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
-  const current = localStorage.getItem(SCHEME_KEY) || "{{ color_scheme }}";
-  if (current === "auto") applyScheme("auto");
+  if (!localStorage.getItem(SCHEME_KEY)) applyScheme(osPrefers());
 });
 </script>
 </body>

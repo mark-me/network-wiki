@@ -1,23 +1,127 @@
-"""Layout- and theme-configuration for the generated HTML page."""
+"""Layout and theme configuration for the generated HTML page."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
 
+
+# ---------------------------------------------------------------------------
+# Bootswatch catalogue
+# ---------------------------------------------------------------------------
+
+#: All available Bootswatch 5 themes, mapped to their base colour scheme.
+#: Developers pick one of these names for ``ThemeConfig.bootswatch_theme``.
+BOOTSWATCH_THEMES: dict[str, Literal["light", "dark"]] = {
+    # Light themes
+    "cerulean":  "light",
+    "cosmo":     "light",
+    "flatly":    "light",
+    "journal":   "light",
+    "litera":    "light",
+    "lumen":     "light",
+    "lux":       "light",
+    "materia":   "light",
+    "minty":     "light",
+    "morph":     "light",
+    "pulse":     "light",
+    "quartz":    "light",
+    "sandstone": "light",
+    "simplex":   "light",
+    "sketchy":   "light",
+    "spacelab":  "light",
+    "united":    "light",
+    "yeti":      "light",
+    "zephyr":    "light",
+    # Dark themes
+    "cyborg":    "dark",
+    "darkly":    "dark",
+    "slate":     "dark",
+    "solar":     "dark",
+    "superhero": "dark",
+    "vapor":     "dark",
+}
+
+_BOOTSWATCH_VERSION = "5.3.3"
+_BOOTSTRAP_VERSION  = "5.3.3"
+
+_BOOTSTRAP_CSS_URL  = (
+    "https://cdn.jsdelivr.net/npm/bootstrap@{v}/dist/css/bootstrap.min.css"
+)
+_BOOTSWATCH_CSS_URL = (
+    "https://cdn.jsdelivr.net/npm/bootswatch@{v}/dist/{theme}/bootstrap.min.css"
+)
+
+
+def bootswatch_css_url(theme: str | None) -> str:
+    """Return the CDN URL for the given Bootswatch theme, or the default Bootstrap CSS.
+
+    Args:
+        theme: A Bootswatch theme name (e.g. ``"darkly"``), or ``None`` for plain Bootstrap.
+
+    Returns:
+        The full CDN URL string for the requested stylesheet.
+
+    Raises:
+        ValueError: If *theme* is not ``None`` and not present in :data:`BOOTSWATCH_THEMES`.
+    """
+    if theme is None:
+        return _BOOTSTRAP_CSS_URL.format(v=_BOOTSTRAP_VERSION)
+    theme = theme.lower()
+    if theme not in BOOTSWATCH_THEMES:
+        raise ValueError(
+            f"Unknown Bootswatch theme: '{theme}'. "
+            f"Choose from: {', '.join(sorted(BOOTSWATCH_THEMES))}."
+        )
+    return _BOOTSWATCH_CSS_URL.format(v=_BOOTSWATCH_VERSION, theme=theme)
+
+
+def bootswatch_base_scheme(theme: str | None) -> Literal["light", "dark"]:
+    """Return the base colour scheme (``"light"`` or ``"dark"``) for a Bootswatch theme.
+
+    Args:
+        theme: A Bootswatch theme name, or ``None`` for plain Bootstrap (defaults to ``"light"``).
+
+    Returns:
+        ``"light"`` or ``"dark"``.
+    """
+    if theme is None:
+        return "light"
+    return BOOTSWATCH_THEMES.get(theme.lower(), "light")
+
+
+# ---------------------------------------------------------------------------
+# LayoutConfig
+# ---------------------------------------------------------------------------
 
 @dataclass
 class LayoutConfig:
-    """
-    Vis.js physics- en layout-settings.
+    """Physics and layout configuration passed directly to vis.js.
 
-    solver-options:
-        ``"barnesHut"`` | ``"forceAtlas2Based"`` | ``"repulsion"`` |
-        ``"hierarchicalRepulsion"``
-
-    hierarchical_direction:
-        ``"UD"`` (up-down) | ``"DU"`` | ``"LR"`` (left-right) | ``"RL"``
+    Args:
+        physics_enabled: Enable or disable the physics simulation.
+        solver: Physics solver. One of ``"barnesHut"``, ``"forceAtlas2Based"``,
+            ``"repulsion"``, or ``"hierarchicalRepulsion"``.
+        stabilization_iterations: Number of stabilization iterations on load.
+        gravity: Gravitational constant (negative = repulsive).
+        spring_length: Preferred edge length in pixels.
+        spring_constant: Edge spring stiffness (0–1).
+        damping: Velocity damping factor (0–1).
+        hierarchical: Enable hierarchical layout (disables physics).
+        hierarchical_direction: Layout direction: ``"UD"``, ``"DU"``,
+            ``"LR"``, or ``"RL"``.
+        hierarchical_sort_method: Node ordering: ``"directed"`` or ``"hubsize"``.
+        hierarchical_level_separation: Vertical distance between levels in pixels.
+        hierarchical_node_spacing: Horizontal distance between nodes in pixels.
+        hover: Highlight nodes and edges on mouse-over.
+        multiselect: Allow selecting multiple nodes with a drag-box.
+        navigation_buttons: Show zoom/fit navigation buttons.
+        keyboard_navigation: Enable keyboard-driven navigation.
+        zoom_speed: Scroll-wheel zoom sensitivity.
+        min_zoom: Minimum zoom scale factor.
+        max_zoom: Maximum zoom scale factor.
     """
+
     # Physics
     physics_enabled: bool = True
     solver: str = "forceAtlas2Based"
@@ -27,14 +131,14 @@ class LayoutConfig:
     spring_constant: float = 0.05
     damping: float = 0.09
 
-    # Hierarchisch layout
+    # Hierarchical layout
     hierarchical: bool = False
     hierarchical_direction: str = "LR"
-    hierarchical_sort_method: str = "directed"  # directed | hubsize
+    hierarchical_sort_method: str = "directed"
     hierarchical_level_separation: int = 200
     hierarchical_node_spacing: int = 120
 
-    # Interactie
+    # Interaction
     hover: bool = True
     multiselect: bool = True
     navigation_buttons: bool = False
@@ -44,12 +148,10 @@ class LayoutConfig:
     max_zoom: float = 10.0
 
     def to_vis(self) -> dict:
-        """Convert this layout configuration into a vis.js-compatible settings dict.
-        Include physics, interaction and optional hierarchical layout settings.
+        """Serialise this configuration to a vis.js-compatible options dict.
 
         Returns:
-            dict: A dictionary with vis.js layout and physics configuration derived from this
-                ``LayoutConfig`` instance.
+            A dictionary suitable for passing to ``new vis.Network(..., options)``.
         """
         cfg: dict[str, Any] = {
             "physics": {
@@ -84,31 +186,78 @@ class LayoutConfig:
                     "nodeSpacing": self.hierarchical_node_spacing,
                 }
             }
-            cfg["physics"]["enabled"] = False  # physics incompatibel met hierarchisch
+            # Physics and hierarchical layout are mutually exclusive in vis.js.
+            cfg["physics"]["enabled"] = False
         return cfg
 
 
+# ---------------------------------------------------------------------------
+# ThemeConfig
+# ---------------------------------------------------------------------------
+
 @dataclass
 class ThemeConfig:
+    """Visual theme configuration for the Bootstrap-based HTML page.
+
+    The developer chooses a Bootswatch theme at export time.  The end-user
+    can then toggle between light and dark mode inside the page; their
+    preference is persisted in ``localStorage`` and automatically falls back
+    to the OS setting (``prefers-color-scheme``) on first load.
+
+    Args:
+        bootswatch_theme: Optional Bootswatch 5 theme name.  ``None`` uses
+            plain Bootstrap.
+
+            Light themes: ``cerulean``, ``cosmo``, ``flatly``, ``journal``,
+            ``litera``, ``lumen``, ``lux``, ``materia``, ``minty``, ``morph``,
+            ``pulse``, ``quartz``, ``sandstone``, ``simplex``, ``sketchy``,
+            ``spacelab``, ``united``, ``yeti``, ``zephyr``.
+
+            Dark themes: ``cyborg``, ``darkly``, ``slate``, ``solar``,
+            ``superhero``, ``vapor``.
+
+        accent_color: CSS colour string used as the primary accent throughout
+            the UI (toolbar highlight, panel title, wiki headings).  Defaults
+            to Bootstrap primary blue.
+
+        panel_width_px: Width of the wiki side-panel in pixels.
+
+        lang: Value for the HTML ``lang`` attribute (e.g. ``"en"``, ``"nl"``).
+
+    Example::
+
+        # Dark Bootswatch theme with a custom accent
+        ThemeConfig(bootswatch_theme="darkly", accent_color="#e94560")
+
+        # Light Bootswatch theme
+        ThemeConfig(bootswatch_theme="minty")
+
+        # Plain Bootstrap (no Bootswatch)
+        ThemeConfig()
     """
-    Theme settings for the Bootstrap-based UI.
 
-    Bootstrap 5 is loaded via CDN. The page automatically adapts to the
-    user's OS preference (light/dark) via ``prefers-color-scheme``.
-
-    accent_color:
-        CSS color that is used as the primary accent color throughout the UI.
-        Overrides the Bootstrap primary color via a CSS custom property.
-
-    panel_width_px:
-        Width of the wiki-sidepanel in pixels.
-
-    default_color_scheme:
-        ``"auto"`` (follows OS preference) | ``"light"`` | ``"dark"``
-        Is placed as ``data-bs-theme`` on the ``<html>`` tag.
-        The toggle button in the UI allows the user to change this manually.
-    """
-    accent_color: str = "#0d6efd"          # Bootstrap primary blue as default
+    bootswatch_theme: str | None = None
+    accent_color: str = "#0d6efd"
     panel_width_px: int = 380
-    default_color_scheme: str = "auto"     # "auto" | "light" | "dark"
-    lang: str = "nl"
+    lang: str = "en"
+
+    def __post_init__(self) -> None:
+        """Validate bootswatch_theme immediately so errors surface at config time."""
+        if self.bootswatch_theme is not None:
+            name = self.bootswatch_theme.lower()
+            if name not in BOOTSWATCH_THEMES:
+                raise ValueError(
+                    f"Unknown Bootswatch theme: '{self.bootswatch_theme}'. "
+                    f"Choose from: {', '.join(sorted(BOOTSWATCH_THEMES))}."
+                )
+            self.bootswatch_theme = name
+
+    @property
+    def css_url(self) -> str:
+        """CDN URL for the active Bootstrap or Bootswatch stylesheet."""
+        return bootswatch_css_url(self.bootswatch_theme)
+
+    @property
+    def base_scheme(self) -> Literal["light", "dark"]:
+        """Base colour scheme (``"light"`` or ``"dark"``) of the chosen theme."""
+        return bootswatch_base_scheme(self.bootswatch_theme)

@@ -1,0 +1,373 @@
+{#
+  page_flask.html.j2 — Flask shell page for network-wiki
+  =======================================================
+  Unlike page.html.j2 (which inlines all graph data), this template loads
+  graph data dynamically from a JSON endpoint.  That means the graph can be
+  replaced without a full page reload — the user picks a graph from the
+  toolbar, the browser fetches /graph/<name>/data, and vis.js is updated
+  in place.
+
+  Variables supplied by GraphView:
+    title         – page title (str)
+    css_url       – Bootstrap or Bootswatch CDN URL (str)
+    accent_color  – CSS accent colour (str)
+    panel_width   – side-panel width in pixels (int)
+    base_scheme   – "light" | "dark" (str)
+    lang          – HTML lang attribute (str)
+    layout_json   – vis.js network options as a JSON string
+    data_url      – URL of the JSON data endpoint for the initial graph (str)
+    graphs        – list of {name, title, url} for the graph picker (list)
+#}
+<!DOCTYPE html>
+<html lang="{{ lang }}" data-bs-theme="{{ base_scheme }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }}</title>
+
+  <link id="nw-bs-css" href="{{ css_url }}" rel="stylesheet">
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    rel="stylesheet"
+  >
+  <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+
+  <style>
+    :root {
+      --nw-accent:      {{ accent_color }};
+      --nw-panel-width: {{ panel_width }}px;
+    }
+
+    html, body { height: 100%; overflow: hidden; }
+
+    #nw-graph-container {
+      position: fixed;
+      inset: 0;
+      padding-top: 44px;
+      transition: right 0.3s ease;
+    }
+    #nw-graph-container.panel-open { right: var(--nw-panel-width); }
+
+    /* ── Loading overlay ──────────────────────────────────────────────── */
+    #nw-loading {
+      position: fixed;
+      inset: 0;
+      padding-top: 44px;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bs-body-bg);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+    }
+    #nw-loading.visible { opacity: 1; pointer-events: all; }
+
+    /* ── Toolbar ──────────────────────────────────────────────────────── */
+    #nw-toolbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 50;
+      height: 44px;
+      background: color-mix(in srgb, var(--bs-body-bg) 88%, transparent);
+      backdrop-filter: blur(6px);
+      border-bottom: 1px solid var(--bs-border-color);
+      padding: 0 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .nw-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    #nw-graph-picker { max-width: 200px; font-size: 0.85rem; }
+
+    /* ── Side panel ───────────────────────────────────────────────────── */
+    #nw-wiki-panel {
+      position: fixed;
+      top: 0; right: 0;
+      width: var(--nw-panel-width);
+      height: 100vh;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+      border-left: 1px solid var(--bs-border-color);
+      background: var(--bs-body-bg);
+      box-shadow: -4px 0 24px rgba(0,0,0,.15);
+    }
+    #nw-wiki-panel.open { transform: translateX(0); }
+
+    #nw-panel-header {
+      flex-shrink: 0;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--bs-border-color);
+      background: var(--bs-tertiary-bg);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #nw-panel-title {
+      flex: 1;
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--nw-accent);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    #nw-panel-body { flex: 1; overflow-y: auto; padding: 16px; }
+
+    /* ── Mini-wiki helpers ────────────────────────────────────────────── */
+    .nw-node-type {
+      font-size: .7rem; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--bs-secondary-color); margin-bottom: 6px;
+    }
+    .nw-node-desc  { font-size: .9rem; line-height: 1.6; margin-bottom: 12px; }
+    .nw-attr-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .nw-attr-box {
+      background: var(--bs-tertiary-bg); border-radius: 6px;
+      padding: 8px 10px; border: 1px solid var(--bs-border-color);
+    }
+    .nw-attr-label {
+      font-size: .65rem; text-transform: uppercase;
+      letter-spacing: .05em; color: var(--bs-secondary-color);
+    }
+    .nw-attr-value { font-size: .95rem; font-weight: 600; }
+    .nw-connections { font-size: .85rem; color: var(--bs-secondary-color); }
+    .nw-connections strong { color: var(--nw-accent); }
+
+    /* ── Wiki-body typography ─────────────────────────────────────────── */
+    .nw-wiki-body h2 { color: var(--nw-accent); margin-top: 1.2rem; }
+    .nw-wiki-body h3 { color: var(--bs-secondary-color); margin-top: 1rem; }
+    .nw-modal-title  { color: var(--nw-accent); }
+  </style>
+</head>
+<body>
+
+{# ── Loading overlay ──────────────────────────────────────────────────────── #}
+<div id="nw-loading">
+  <div class="text-center text-secondary">
+    <div class="spinner-border mb-2" role="status" style="width:2rem;height:2rem;"></div>
+    <div style="font-size:.9rem;">Loading graph…</div>
+  </div>
+</div>
+
+{# ── Toolbar ─────────────────────────────────────────────────────────────── #}
+<div id="nw-toolbar">
+  <span class="nw-title" id="nw-current-title">{{ title }}</span>
+
+  {# Graph picker — only shown when multiple graphs are registered #}
+  {% if graphs | length > 1 %}
+  <select
+    class="form-select form-select-sm"
+    id="nw-graph-picker"
+    onchange="loadGraph(this.value)"
+    title="Switch graph"
+  >
+    {% for g in graphs %}
+    <option value="{{ g.url }}" {% if g.url == data_url %}selected{% endif %}>
+      {{ g.title }}
+    </option>
+    {% endfor %}
+  </select>
+  {% endif %}
+
+  {# Fit button #}
+  <button
+    class="btn btn-sm btn-outline-secondary"
+    title="Fit graph in view"
+    onclick="network.fit()"
+  ><i class="bi bi-fullscreen"></i></button>
+
+  {# Light / dark toggle #}
+  <button
+    class="btn btn-sm btn-outline-secondary"
+    id="nw-scheme-btn"
+    title="Toggle light / dark"
+    onclick="toggleScheme()"
+  ><i class="bi bi-circle-half" id="nw-scheme-icon"></i></button>
+</div>
+
+{# ── Graph canvas ─────────────────────────────────────────────────────────── #}
+<div id="nw-graph-container"></div>
+
+{# ── Side panel ───────────────────────────────────────────────────────────── #}
+<div id="nw-wiki-panel">
+  <div id="nw-panel-header">
+    <span id="nw-panel-title">—</span>
+    <button
+      class="btn btn-sm btn-outline-primary"
+      id="nw-btn-full-wiki"
+      onclick="openFullWiki()"
+      style="display:none;"
+    ><i class="bi bi-book"></i> Wiki</button>
+    <button
+      class="btn btn-sm btn-outline-secondary"
+      onclick="closePanel()"
+      title="Close"
+    ><i class="bi bi-x-lg"></i></button>
+  </div>
+  <div id="nw-panel-body" class="nw-wiki-body"></div>
+</div>
+
+{# ── Full-wiki modal ───────────────────────────────────────────────────────── #}
+<div class="modal fade" id="nw-wiki-modal" tabindex="-1"
+     aria-labelledby="nw-wiki-modal-label" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title nw-modal-title" id="nw-wiki-modal-label">Wiki</h5>
+        <button type="button" class="btn-close"
+                data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body nw-wiki-body" id="nw-wiki-modal-body"></div>
+    </div>
+  </div>
+</div>
+
+{# ── Bootstrap JS ─────────────────────────────────────────────────────────── #}
+<script
+  src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+  integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmHN9e0b6h4hm6S1oG2CzXqJJnn2X"
+  crossorigin="anonymous"
+></script>
+
+<script>
+// ── Bootstrapped from server ──────────────────────────────────────────────────
+const LAYOUT_CFG  = {{ layout_json }};
+const BASE_SCHEME = "{{ base_scheme }}";
+const INITIAL_URL = "{{ data_url }}";
+
+// ── vis.js network — created once, data swapped on graph change ───────────────
+const nodeDataset = new vis.DataSet([]);
+const edgeDataset = new vis.DataSet([]);
+
+const network = new vis.Network(
+  document.getElementById("nw-graph-container"),
+  { nodes: nodeDataset, edges: edgeDataset },
+  LAYOUT_CFG
+);
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let NODE_WIKI = {};
+let EDGE_WIKI = {};
+let HAS_EDGE_WIKI = false;
+let currentWikiData = null;
+const bsModal = new bootstrap.Modal(document.getElementById("nw-wiki-modal"));
+
+// ── Graph loading ─────────────────────────────────────────────────────────────
+
+async function loadGraph(dataUrl) {
+  closePanel();
+  showLoading(true);
+  try {
+    const resp = await fetch(dataUrl);
+    if (!resp.ok) throw new Error(`Server returned ${resp.status}`);
+    const payload = await resp.json();
+
+    // Update vis.js datasets in place — no page reload.
+    nodeDataset.clear();
+    edgeDataset.clear();
+    nodeDataset.add(payload.nodes);
+    edgeDataset.add(payload.edges);
+
+    // Swap wiki data.
+    NODE_WIKI     = payload.node_wiki;
+    EDGE_WIKI     = payload.edge_wiki;
+    HAS_EDGE_WIKI = payload.has_edge_wiki;
+
+    // Update page title.
+    document.title = payload.title;
+    document.getElementById("nw-current-title").textContent = payload.title;
+
+    network.fit();
+  } catch (err) {
+    console.error("Failed to load graph:", err);
+    alert(`Could not load graph: ${err.message}`);
+  } finally {
+    showLoading(false);
+  }
+}
+
+function showLoading(visible) {
+  document.getElementById("nw-loading").classList.toggle("visible", visible);
+}
+
+// ── Click handling ────────────────────────────────────────────────────────────
+network.on("click", params => {
+  if (params.nodes.length > 0) {
+    openPanel(NODE_WIKI[params.nodes[0]]);
+  } else if (params.edges.length > 0 && HAS_EDGE_WIKI) {
+    openPanel(EDGE_WIKI[params.edges[0]]);
+  } else {
+    closePanel();
+  }
+});
+
+function openPanel(data) {
+  if (!data) return;
+  currentWikiData = data;
+  document.getElementById("nw-panel-title").textContent = data.label;
+  document.getElementById("nw-panel-body").innerHTML =
+    data.mini || "<em class='text-secondary'>No wiki content available.</em>";
+  document.getElementById("nw-btn-full-wiki").style.display =
+    data.full ? "" : "none";
+  document.getElementById("nw-wiki-panel").classList.add("open");
+  document.getElementById("nw-graph-container").classList.add("panel-open");
+}
+
+function closePanel() {
+  document.getElementById("nw-wiki-panel").classList.remove("open");
+  document.getElementById("nw-graph-container").classList.remove("panel-open");
+  currentWikiData = null;
+}
+
+function openFullWiki() {
+  if (!currentWikiData?.full) return;
+  document.getElementById("nw-wiki-modal-label").textContent = currentWikiData.label;
+  document.getElementById("nw-wiki-modal-body").innerHTML = currentWikiData.full;
+  bsModal.show();
+}
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") { bsModal.hide(); closePanel(); }
+});
+
+// ── Light / dark scheme toggle ────────────────────────────────────────────────
+const SCHEME_KEY = "nw-scheme";
+const ICONS = { light: "bi-sun-fill", dark: "bi-moon-fill" };
+
+function osPrefers() {
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+function activeScheme() {
+  return localStorage.getItem(SCHEME_KEY) || osPrefers();
+}
+function applyScheme(scheme) {
+  document.documentElement.setAttribute("data-bs-theme", scheme);
+  document.getElementById("nw-scheme-icon").className =
+    "bi " + (ICONS[scheme] || "bi-circle-half");
+}
+function toggleScheme() {
+  const next = activeScheme() === "light" ? "dark" : "light";
+  localStorage.setItem(SCHEME_KEY, next);
+  applyScheme(next);
+}
+
+applyScheme(activeScheme());
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  if (!localStorage.getItem(SCHEME_KEY)) applyScheme(osPrefers());
+});
+
+// ── Load the initial graph ────────────────────────────────────────────────────
+loadGraph(INITIAL_URL);
+</script>
+</body>
+</html>

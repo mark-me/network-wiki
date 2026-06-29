@@ -5,15 +5,25 @@
 You do not need to create a new project or publish the package to use it in another project.
 There are three ways to install it directly from the repository.
 
-### Option 1 — `pip install` from a local clone (recommended)
+### Option 1 — local clone (recommended)
 
 Clone the repo once, then install it as an editable package.
 Any changes you make to the source are immediately reflected — no reinstall needed.
+
+**pip**
 
 ```bash
 git clone https://github.com/mark-me/network-wiki.git
 cd network-wiki
 pip install -e .
+```
+
+**uv**
+
+```bash
+git clone https://github.com/mark-me/network-wiki.git
+cd network-wiki
+uv sync
 ```
 
 In your own project (anywhere on the same machine):
@@ -22,19 +32,35 @@ In your own project (anywhere on the same machine):
 from network_wiki import GraphExporter, ThemeConfig
 ```
 
-### Option 2 — `pip install` directly from GitHub
+### Option 2 — directly from GitHub
 
-No local clone required.  The package is fetched and installed from the
+No local clone required. The package is fetched and installed from the
 repository's default branch.
+
+**pip**
 
 ```bash
 pip install git+https://github.com/mark-me/network-wiki.git
 ```
 
-Pin a specific commit or tag for reproducible installs:
+**uv**
 
 ```bash
-pip install git+https://github.com/mark-me/network-wiki.git@v0.3.0
+uv add git+https://github.com/mark-me/network-wiki.git
+```
+
+Pin a specific tag for reproducible installs:
+
+**pip**
+
+```bash
+pip install git+https://github.com/mark-me/network-wiki.git@v0.5.0
+```
+
+**uv**
+
+```bash
+uv add "network-wiki @ git+https://github.com/mark-me/network-wiki.git@v0.5.0"
 ```
 
 ### Option 3 — path dependency in `pyproject.toml`
@@ -49,7 +75,7 @@ dependencies = [
 ]
 ```
 
-Or, with a relative path (pip ≥ 22):
+Or, with a relative path (pip ≥ 22 / uv):
 
 ```toml
 dependencies = [
@@ -61,16 +87,34 @@ dependencies = [
 
 ## Setting up a development environment
 
+**pip**
+
 ```bash
 git clone https://github.com/mark-me/network-wiki.git
 cd network-wiki
-pip install -e ".[dev]"   # installs the package + pytest, build, twine
+pip install -e ".[dev,flask]"
+```
+
+**uv**
+
+```bash
+git clone https://github.com/mark-me/network-wiki.git
+cd network-wiki
+uv sync --extra dev --extra flask
 ```
 
 ### Running the tests
 
+**pip**
+
 ```bash
 pytest
+```
+
+**uv**
+
+```bash
+uv run pytest
 ```
 
 ### Generating an example page

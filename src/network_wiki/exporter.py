@@ -227,20 +227,23 @@ class GraphExporter:
     # Export
     # ------------------------------------------------------------------
 
-    def export(self, path: str | Path = "graph_wiki.html") -> Path:
-        """Render the HTML page and write it to *path*.
+    def _build_template_vars(self) -> dict:
+        """Assemble all template variables from the current graph state.
 
-        Args:
-            path: Destination file path.  Created or overwritten; parent
-                directories must exist.
+        This is the single place that translates Python graph data into the
+        dict consumed by both ``page.html.j2`` (static) and
+        ``page_flask.html.j2`` (Flask shell).  External callers such as
+        :class:`~network_wiki.flask_view.GraphView` call this to get the
+        graph payload as a plain dict.
 
         Returns:
-            The resolved absolute :class:`~pathlib.Path` of the written file.
+            Dict with keys ``nodes_json``, ``edges_json``,
+            ``node_wiki_json``, ``edge_wiki_json``, ``has_edge_wiki``,
+            ``layout_json``, plus the theme variables.
         """
         vis_nodes, node_wiki_map = self._build_nodes()
         vis_edges, edge_wiki_map = self._build_edges()
 
-        # Build label map in O(n) — avoids O(n²) scan in the dict comprehension.
         label_map: dict[int, str] = {n["id"]: n["label"] for n in vis_nodes}
 
         node_wiki_js = {
@@ -251,7 +254,6 @@ class GraphExporter:
             }
             for vid, wiki in node_wiki_map.items()
         }
-
         edge_wiki_js = {
             eid: {
                 "label": f"Edge {eid}",
@@ -262,9 +264,7 @@ class GraphExporter:
         }
 
         t = self.theme
-        tmpl_path = _pkg_res.files("network_wiki").joinpath("templates")
-        env = Environment(loader=FileSystemLoader(str(tmpl_path)))
-        html = env.get_template("page.html.j2").render(
+        return dict(
             title=self.title,
             css_url=t.css_url,
             accent_color=t.accent_color,
@@ -279,7 +279,34 @@ class GraphExporter:
             layout_json=json.dumps(self.layout.to_vis(), ensure_ascii=False),
         )
 
+    def render_html(self, template: str = "page.html.j2") -> str:
+        """Render the graph to an HTML string without writing to disk.
+
+        This is the core rendering method used by both :meth:`export` (static
+        files) and :class:`~network_wiki.flask_view.GraphView` (Flask).
+
+        Args:
+            template: Name of the Jinja2 template to use.  Must exist in the
+                package ``templates/`` directory.
+
+        Returns:
+            The rendered HTML as a string.
+        """
+        tmpl_path = _pkg_res.files("network_wiki").joinpath("templates")
+        env = Environment(loader=FileSystemLoader(str(tmpl_path)))
+        return env.get_template(template).render(**self._build_template_vars())
+
+    def export(self, path: str | Path = "graph_wiki.html") -> Path:
+        """Render the HTML page and write it to *path*.
+
+        Args:
+            path: Destination file path.  Created or overwritten; parent
+                directories must exist.
+
+        Returns:
+            The resolved absolute :class:`~pathlib.Path` of the written file.
+        """
         out = Path(path).resolve()
-        out.write_text(html, encoding="utf-8")
+        out.write_text(self.render_html(), encoding="utf-8")
         print(f"Exported to: {out}")
         return out

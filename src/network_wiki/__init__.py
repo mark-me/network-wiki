@@ -32,6 +32,7 @@ from .edge_style import EdgeColor, EdgeArrows, EdgeStyle
 from .wiki import WikiContent, WikiTemplateRenderer
 from .layout import LayoutConfig, ThemeConfig, BOOTSWATCH_THEMES
 from .exporter import GraphExporter
+from .flask_view import GraphView
 
 __all__ = [
     "NodeColor", "NodeFont", "NodeStyle",
@@ -39,6 +40,7 @@ __all__ = [
     "WikiContent", "WikiTemplateRenderer",
     "LayoutConfig", "ThemeConfig", "BOOTSWATCH_THEMES",
     "GraphExporter",
+    "GraphView",
 ]
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"

@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Python 3.8 or higher
+- Python 3.11 or higher
 - [`igraph`](https://igraph.org/python/) for graph operations
 - [`jinja2`](https://jinja.palletsprojects.com/) for wiki templating (optional but recommended)
 

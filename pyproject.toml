@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "network-wiki"
-version = "0.4.0"
+version = "0.5.0"
 description = "Generate interactive HTML graph visualisations with expandable node wikis"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -26,6 +26,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+flask = [
+    "flask>=3.0",
+]
 dev = [
     "pytest>=8",
     "pytest-cov",

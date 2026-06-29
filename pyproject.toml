@@ -52,3 +52,8 @@ network_wiki = ["templates/*.j2"]
 # ── Pytest ────────────────────────────────────────────────────────────────────
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "zensical>=0.0.46",
+]

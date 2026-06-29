@@ -53,6 +53,10 @@ class WikiTemplateRenderer:
     ``n_out``      Number of outgoing edges (``int``).
     ``neighbours`` Names of all neighbouring nodes (``list[str]``).
     ``graph``      The full ``igraph.Graph`` object.
+    ``type_value`` Value of the *type_attr* attribute for this vertex, or
+                   ``""`` when absent.  Use this in templates instead of
+                   ``attrs[type_attr]`` so templates stay decoupled from
+                   the attribute name.
     ============== ===========================================================
 
     Additional keys supplied via ``global_context`` are available in every
@@ -75,8 +79,34 @@ class WikiTemplateRenderer:
             mini-wiki template.
         full_template_file: Filename (relative to *template_dir*) for the
             full-wiki template.
-        type_attr: Vertex attribute used to select per-type templates
-            (default ``"type"``).
+        type_attr: Name of the vertex attribute whose value selects
+            per-type templates (default ``"type"``).  Set this to any
+            attribute on your graph nodes — the value becomes ``type_value``
+            in every template and drives template resolution.
+
+            Examples::
+
+                # Default: use the "type" attribute
+                WikiTemplateRenderer()
+
+                # Organisational chart: dispatch on "role"
+                WikiTemplateRenderer(
+                    type_attr="role",
+                    full_templates_by_type={
+                        "manager":   MANAGER_TMPL,
+                        "engineer":  ENGINEER_TMPL,
+                    },
+                )
+
+                # Network topology: dispatch on "device_class"
+                WikiTemplateRenderer(
+                    type_attr="device_class",
+                    full_template_files_by_type={
+                        "router":  "router.html.j2",
+                        "switch":  "switch.html.j2",
+                        "host":    "host.html.j2",
+                    },
+                )
         mini_templates_by_type: Inline mini-templates keyed by type string.
         full_templates_by_type: Inline full-templates keyed by type string.
         mini_template_files_by_type: Filenames of mini-templates keyed by type.
@@ -189,6 +219,11 @@ class WikiTemplateRenderer:
             for i in graph.neighbors(vertex.index)
         ]
 
+        # type_value: resolved value of the configured type attribute.
+        # Templates use this variable instead of attrs[type_attr] directly,
+        # keeping them decoupled from the actual attribute name.
+        type_value = str(attrs.get(self.type_attr) or "")
+
         ctx = {
             "v": vertex,
             "attrs": attrs,
@@ -198,6 +233,7 @@ class WikiTemplateRenderer:
             "n_out": n_out,
             "neighbours": neighbours,
             "graph": graph,
+            "type_value": type_value,
         }
         ctx.update(self.global_context)
         return ctx

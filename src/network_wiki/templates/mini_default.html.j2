@@ -1,26 +1,38 @@
-{# mini_default.html.j2 — Compact side-panel wiki for all node types #}
+{#
+  mini_default.html.j2
+  --------------------
+  Generic compact side-panel wiki.  Renders every vertex attribute as a
+  labelled box, regardless of attribute names or domain.
+
+  Context variables (always available):
+    label       – display name of the node
+    attrs       – dict of all vertex attributes {name: value}
+    type_value  – value of the configured type attribute, or "" if absent
+    n_in        – number of incoming edges
+    n_out       – number of outgoing edges
+    neighbours  – list of neighbouring node names
+#}
 <div class="nw-mini-wiki">
 
-  <div class="nw-node-type">{{ attrs.get('type', 'Node') | upper }}</div>
+  {# Type badge — shown only when the graph has a type attribute #}
+  {% if type_value %}
+  <div class="nw-node-type">{{ type_value | upper }}</div>
+  {% endif %}
 
+  {# Description — shown when the vertex has a "description" attribute #}
   {% if attrs.description is defined and attrs.description %}
   <div class="nw-node-desc">{{ attrs.description }}</div>
   {% endif %}
 
+  {# One box per attribute — skips name, label, description (shown elsewhere) #}
   <div class="nw-attr-grid">
-    {% if attrs.status is defined %}
+    {% for key, val in attrs.items()
+         if key not in ('name', 'label', 'description') and val is not none %}
     <div class="nw-attr-box">
-      <div class="nw-attr-label">Status</div>
-      <div class="nw-attr-value">{{ attrs.status | capitalize }}</div>
+      <div class="nw-attr-label">{{ key | replace('_', ' ') | capitalize }}</div>
+      <div class="nw-attr-value">{{ val }}</div>
     </div>
-    {% endif %}
-
-    {% if attrs.owner is defined %}
-    <div class="nw-attr-box">
-      <div class="nw-attr-label">Owner</div>
-      <div class="nw-attr-value">{{ attrs.owner }}</div>
-    </div>
-    {% endif %}
+    {% endfor %}
 
     <div class="nw-attr-box">
       <div class="nw-attr-label">Incoming</div>
@@ -32,8 +44,10 @@
     </div>
   </div>
 
+  {% if neighbours %}
   <div class="nw-connections">
-    Connected to <strong>{{ n_in + n_out }}</strong> other nodes
+    Connected to <strong>{{ n_in + n_out }}</strong> other node{{ 's' if (n_in + n_out) != 1 }}
   </div>
+  {% endif %}
 
 </div>

@@ -1,15 +1,40 @@
-{# full_default.html.j2 — Full-screen wiki for nodes without a type-specific template #}
+{#
+  full_default.html.j2
+  --------------------
+  Generic full-screen wiki modal.  Renders every vertex attribute as a table
+  row, regardless of attribute names or domain.
+
+  Context variables (always available):
+    label       – display name of the node
+    attrs       – dict of all vertex attributes {name: value}
+    type_value  – value of the configured type attribute, or "" if absent
+    n_in        – number of incoming edges
+    n_out       – number of outgoing edges
+    neighbours  – list of neighbouring node names
+    index       – vertex index
+#}
 <h2>{{ label }}</h2>
 
-{% if attrs.description is defined and attrs.description %}
-<p>{{ attrs.description }}</p>
+{% if type_value %}
+<span class="badge text-bg-secondary mb-2">{{ type_value }}</span>
 {% endif %}
 
+{% if attrs.description is defined and attrs.description %}
+<p class="lead">{{ attrs.description }}</p>
+{% endif %}
+
+{# Attribute table — skips name, label, description (shown above) #}
+{% set skipped = ['name', 'label', 'description'] %}
+{% set shown_attrs = attrs.items() | selectattr('0', 'ne', 'name')
+                                   | selectattr('0', 'ne', 'label')
+                                   | selectattr('0', 'ne', 'description')
+                                   | list %}
+{% if shown_attrs %}
 <h3>Attributes</h3>
 <table class="table table-sm table-striped">
   <thead><tr><th>Property</th><th>Value</th></tr></thead>
   <tbody>
-  {% for key, val in attrs.items() if key not in ('name', 'description') and val is not none %}
+  {% for key, val in shown_attrs if val is not none %}
   <tr>
     <td>{{ key | replace('_', ' ') | capitalize }}</td>
     <td>{{ val }}</td>
@@ -17,12 +42,21 @@
   {% endfor %}
   </tbody>
 </table>
+{% endif %}
+
+<h3>Connections</h3>
+<table class="table table-sm">
+  <tbody>
+  <tr><td>Incoming</td><td><strong>{{ n_in }}</strong></td></tr>
+  <tr><td>Outgoing</td><td><strong>{{ n_out }}</strong></td></tr>
+  </tbody>
+</table>
 
 {% if neighbours %}
 <h3>Connected nodes</h3>
-<ul>
+<ul class="list-unstyled">
   {% for n in neighbours %}
-  <li>{{ n }}</li>
+  <li><i class="bi bi-diagram-3 me-1"></i>{{ n }}</li>
   {% endfor %}
 </ul>
 {% endif %}

@@ -339,3 +339,107 @@ def test_all_public_imports():
     )
     assert callable(GraphExporter)
     assert isinstance(BOOTSWATCH_THEMES, dict)
+
+
+# ---------------------------------------------------------------------------
+# Generic type_attr dispatch
+# ---------------------------------------------------------------------------
+
+def test_type_attr_dispatches_on_arbitrary_attribute(tmp_path):
+    """type_attr can be any vertex attribute, not just "type"."""
+    g = ig.Graph(directed=True)
+    g.add_vertices(2)
+    g.vs["name"]  = ["Router", "Switch"]
+    g.vs["layer"] = ["core", "access"]   # different attribute name
+    g.add_edges([(0, 1)])
+
+    renderer = WikiTemplateRenderer(
+        type_attr="layer",               # dispatch on "layer", not "type"
+        full_templates_by_type={
+            "core":   "<h2>Core: {{ label }}</h2><p>Layer: {{ type_value }}</p>",
+            "access": "<h2>Access: {{ label }}</h2><p>Layer: {{ type_value }}</p>",
+        },
+        mini_template="<p>{{ label }} / {{ type_value }}</p>",
+        undefined_strict=False,
+    )
+    exporter = GraphExporter(g, wiki_renderer=renderer)
+    out = tmp_path / "network.html"
+    exporter.export(out)
+    html = out.read_text(encoding="utf-8")
+
+    assert "Core: Router" in html
+    assert "Access: Switch" in html
+    assert "Layer: core" in html
+
+
+def test_type_value_in_context(tmp_path):
+    """type_value is always present in template context."""
+    g = ig.Graph()
+    g.add_vertices(1)
+    g.vs["name"] = ["Node A"]
+    g.vs["role"] = ["manager"]
+
+    renderer = WikiTemplateRenderer(
+        type_attr="role",
+        mini_template="<p>{{ type_value }}</p>",
+        undefined_strict=True,   # strict — type_value must be defined
+    )
+    exporter = GraphExporter(g, wiki_renderer=renderer)
+    out = tmp_path / "out.html"
+    exporter.export(out)
+    assert "manager" in out.read_text(encoding="utf-8")
+
+
+def test_type_value_empty_when_attribute_absent(tmp_path):
+    """type_value is empty string when the type attribute is not on the vertex."""
+    g = ig.Graph()
+    g.add_vertices(1)
+    g.vs["name"] = ["Node A"]
+    # no "type" attribute at all
+
+    renderer = WikiTemplateRenderer(
+        mini_template="<p>type={{ type_value }}</p>",
+        undefined_strict=True,
+    )
+    exporter = GraphExporter(g, wiki_renderer=renderer)
+    out = tmp_path / "out.html"
+    exporter.export(out)
+    assert "type=" in out.read_text(encoding="utf-8")  # type_value is ""
+
+
+def test_default_templates_render_without_type(tmp_path):
+    """Bundled templates work for graphs with no type attribute at all."""
+    g = ig.Graph(directed=True)
+    g.add_vertices(2)
+    g.vs["name"] = ["Alpha", "Beta"]
+    g.vs["score"] = [42, 87]
+    g.add_edges([(0, 1)])
+
+    exporter = GraphExporter(
+        g,
+        wiki_renderer=WikiTemplateRenderer(undefined_strict=False),
+    )
+    out = tmp_path / "out.html"
+    exporter.export(out)
+    html = out.read_text(encoding="utf-8")
+    assert "Alpha" in html
+    assert "Beta" in html
+    assert "42" in html
+
+
+def test_default_templates_render_with_custom_type_attr(tmp_path):
+    """Bundled templates show type_value from a non-default type attribute."""
+    g = ig.Graph()
+    g.add_vertices(1)
+    g.vs["name"]   = ["Node"]
+    g.vs["device"] = ["router"]
+
+    renderer = WikiTemplateRenderer(
+        type_attr="device",
+        undefined_strict=False,
+    )
+    exporter = GraphExporter(g, wiki_renderer=renderer)
+    out = tmp_path / "out.html"
+    exporter.export(out)
+    # mini_default.html.j2 shows type_value in nw-node-type div
+    assert "ROUTER" in out.read_text(encoding="utf-8")

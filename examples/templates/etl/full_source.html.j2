@@ -1,0 +1,28 @@
+{# full_source.html.j2 — Full-screen wiki for source system nodes #}
+<h2>📥 {{ label }}</h2>
+<p>{{ attrs.description | default('No description available.') }}</p>
+
+<h3>Source information</h3>
+<table class="table table-sm table-striped">
+  <thead><tr><th>Property</th><th>Value</th></tr></thead>
+  <tbody>
+  <tr><td>Owner</td><td>{{ attrs.owner | default('—') }}</td></tr>
+  <tr><td>Status</td><td>{{ attrs.status | default('—') | capitalize }}</td></tr>
+  {% if attrs.weight is defined %}
+  <tr><td>Weight</td><td>{{ attrs.weight }}</td></tr>
+  {% endif %}
+  </tbody>
+</table>
+
+{% if neighbours %}
+<h3>Delivers to</h3>
+<ul>
+  {% for n in neighbours %}
+  <li>➡️ {{ n }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% if project is defined %}
+<p><span class="badge text-bg-primary">{{ project }}</span></p>
+{% endif %}

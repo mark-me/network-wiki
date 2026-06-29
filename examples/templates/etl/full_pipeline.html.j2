@@ -1,0 +1,36 @@
+{# full_pipeline.html.j2 — Full-screen wiki for pipeline nodes #}
+<h2>🔄 {{ label }}</h2>
+<p>{{ attrs.description | default('No description available.') }}</p>
+
+<h3>Pipeline status</h3>
+<table class="table table-sm table-striped">
+  <thead><tr><th>Property</th><th>Value</th></tr></thead>
+  <tbody>
+  <tr><td>Status</td><td>{{ attrs.status | default('—') | capitalize }}</td></tr>
+  <tr><td>Owner</td><td>{{ attrs.owner | default('—') }}</td></tr>
+  <tr><td>Weight</td><td>{{ attrs.weight | default('—') }}</td></tr>
+  </tbody>
+</table>
+
+<h3>Data flows</h3>
+<table class="table table-sm table-striped">
+  <thead><tr><th>Direction</th><th>Count</th></tr></thead>
+  <tbody>
+  <tr><td>⬅️ Incoming sources</td><td>{{ n_in }}</td></tr>
+  <tr><td>➡️ Outgoing targets</td><td>{{ n_out }}</td></tr>
+  </tbody>
+</table>
+
+{% if neighbours %}
+<h3>Connected nodes</h3>
+<ul>
+  {% for n in neighbours %}
+  <li>{{ n }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% if project is defined %}
+<h3>Project</h3>
+<p><span class="badge text-bg-primary">{{ project }}</span></p>
+{% endif %}

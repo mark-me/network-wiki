@@ -237,3 +237,25 @@ def test_export_still_writes_file(exporter, tmp_path):
 def test_graphview_importable_from_package():
     from network_wiki import GraphView
     assert GraphView is _GV
+
+
+# ---------------------------------------------------------------------------
+# ImportError when Flask is not installed
+# ---------------------------------------------------------------------------
+
+def test_graph_view_raises_import_error_when_flask_unavailable(monkeypatch):
+    """GraphView raises ImportError with an instructive message when Flask is absent."""
+    monkeypatch.setattr("network_wiki.flask_view._FLASK_AVAILABLE", False)
+
+    g = ig.Graph(directed=True)
+    g.add_vertices(2)
+    g.vs["name"] = ["A", "B"]
+    g.add_edges([(0, 1)])
+    exporter = GraphExporter(g)
+
+    with pytest.raises(ImportError) as exc_info:
+        _GV(exporter)
+
+    msg = str(exc_info.value).lower()
+    assert "flask is required for graphview" in msg
+    assert "pip install flask" in msg

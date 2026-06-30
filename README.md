@@ -250,6 +250,37 @@ For each node, the first matching template wins:
 
 The built-in fallbacks render all vertex attributes as a table — no configuration needed.
 
+### Edge wikis
+
+Edges get the same side-panel / full-modal treatment as nodes. Edge wikis are
+set via a plain Python callback rather than a template renderer — usually
+simpler since edge content tends to be short:
+
+```python
+from network_wiki import WikiContent
+
+def edge_wiki(e) -> WikiContent:
+    return WikiContent(
+        mini_html=f"<p>{e['relationship']} since {e['since']}</p>",
+        full_html=f"<h2>{e['relationship']}</h2><p>Since {e['since']}</p>",
+    )
+
+exporter = GraphExporter(g, edge_wiki_callback=edge_wiki)
+```
+
+### Full example
+
+[`examples/example_wiki_content.py`](examples/example_wiki_content.py) builds
+a small org chart and demonstrates every wiki mechanism side by side:
+per-type template **files**, per-type **inline** templates, the **automatic
+fallback** for untemplated types, and an **edge wiki callback** — all on one
+graph, so you can compare the approaches directly.
+
+```bash
+python examples/example_wiki_content.py
+# → examples/org_chart_wiki.html
+```
+
 ---
 
 ## 🎨 Theming
@@ -267,6 +298,13 @@ ThemeConfig()
 ```
 
 The end-user can toggle light / dark mode with the toolbar button. Their choice is saved in `localStorage` and falls back to the OS `prefers-color-scheme` setting on first load.
+
+> **Note:** the toggle is only shown when no Bootswatch theme is set
+> (`ThemeConfig()` with `bootswatch_theme=None`). Bootswatch stylesheets are
+> built for a single fixed appearance and don't respond to Bootstrap's
+> `data-bs-theme` attribute, so the toggle would have no visible effect —
+> network-wiki hides it automatically in that case. If you want user-toggleable
+> light/dark mode, use plain Bootstrap and set `accent_color` for branding instead.
 
 **Available Bootswatch themes:**
 

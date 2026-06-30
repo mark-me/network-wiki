@@ -157,13 +157,18 @@
     onclick="network.fit()"
   ><i class="bi bi-fullscreen"></i></button>
 
-  {# Light / dark toggle — controlled by the user, persisted in localStorage #}
+  {# Light / dark toggle — controlled by the user, persisted in localStorage.
+     Only shown for plain Bootstrap: Bootswatch stylesheets are baked for a
+     single fixed scheme and ignore data-bs-theme, so the toggle would have
+     no visible effect there. #}
+  {% if not bootswatch_theme %}
   <button
     class="btn btn-sm btn-outline-secondary"
     id="nw-scheme-btn"
     title="Toggle light / dark"
     onclick="toggleScheme()"
   ><i class="bi bi-circle-half" id="nw-scheme-icon"></i></button>
+  {% endif %}
 </div>
 
 {# ── Graph canvas ─────────────────────────────────────────────────────────── #}

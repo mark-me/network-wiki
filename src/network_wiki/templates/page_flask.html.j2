@@ -186,13 +186,15 @@
     onclick="network.fit()"
   ><i class="bi bi-fullscreen"></i></button>
 
-  {# Light / dark toggle #}
+  {# Light / dark toggle — hidden for Bootswatch themes, see page.html.j2 #}
+  {% if not bootswatch_theme %}
   <button
     class="btn btn-sm btn-outline-secondary"
     id="nw-scheme-btn"
     title="Toggle light / dark"
     onclick="toggleScheme()"
   ><i class="bi bi-circle-half" id="nw-scheme-icon"></i></button>
+  {% endif %}
 </div>
 
 {# ── Graph canvas ─────────────────────────────────────────────────────────── #}

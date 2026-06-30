@@ -270,6 +270,7 @@ class GraphExporter:
             accent_color=t.accent_color,
             panel_width=t.panel_width_px,
             base_scheme=t.base_scheme,
+            bootswatch_theme=t.bootswatch_theme,
             lang=t.lang,
             nodes_json=json.dumps(vis_nodes, ensure_ascii=False),
             edges_json=json.dumps(vis_edges, ensure_ascii=False),

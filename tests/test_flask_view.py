@@ -259,3 +259,34 @@ def test_graph_view_raises_import_error_when_flask_unavailable(monkeypatch):
     msg = str(exc_info.value).lower()
     assert "flask is required for graphview" in msg
     assert "pip install flask" in msg
+
+
+# ---------------------------------------------------------------------------
+# Toggle visibility with Bootswatch — regression test
+# ---------------------------------------------------------------------------
+
+def test_flask_toggle_hidden_when_bootswatch_active(simple_graph):
+    from flask import Flask
+    app = Flask(__name__)
+    app.config["TESTING"] = True
+    exp = GraphExporter(simple_graph, theme=ThemeConfig(bootswatch_theme="darkly"))
+    view = GraphView(url_prefix="/g")
+    view.add("d", exp)
+    view.register(app)
+
+    html = app.test_client().get("/g/d/").data.decode()
+    assert "nw-scheme-btn" not in html
+
+
+def test_flask_toggle_visible_for_plain_bootstrap(simple_graph):
+    from flask import Flask
+    app = Flask(__name__)
+    app.config["TESTING"] = True
+    exp = GraphExporter(simple_graph, theme=ThemeConfig())
+    view = GraphView(url_prefix="/g")
+    view.add("p", exp)
+    view.register(app)
+
+    html = app.test_client().get("/g/p/").data.decode()
+    assert "nw-scheme-btn" in html
+    assert "toggleScheme" in html

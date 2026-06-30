@@ -1,0 +1,31 @@
+{#
+  full_executive.html.j2 — full-screen modal view for executives
+#}
+<h2>{{ label }}</h2>
+<span class="badge text-bg-primary mb-2">{{ attrs.title }}</span>
+
+<p class="lead">{{ attrs.bio }}</p>
+
+<h3>Profile</h3>
+<table class="table table-sm table-striped">
+  <thead><tr><th>Property</th><th>Value</th></tr></thead>
+  <tbody>
+    <tr><td>Department</td><td>{{ attrs.department }}</td></tr>
+    <tr><td>Tenure</td><td>{{ attrs.tenure_years }} years</td></tr>
+    <tr><td>Location</td><td>{{ attrs.location }}</td></tr>
+    <tr><td>Direct reports</td><td>{{ n_in }}</td></tr>
+  </tbody>
+</table>
+
+{% if neighbours %}
+<h3>Direct reports</h3>
+<ul class="list-unstyled">
+  {% for n in neighbours %}
+  <li><i class="bi bi-person-fill me-1"></i>{{ n }}</li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+{% if company is defined %}
+<p class="text-secondary small mt-3">{{ company }} — Org chart</p>
+{% endif %}

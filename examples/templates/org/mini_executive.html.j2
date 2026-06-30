@@ -1,0 +1,23 @@
+{#
+  mini_executive.html.j2 — compact side-panel view for executives
+  Available context: label, attrs, type_value, n_in, n_out, neighbours
+#}
+<div class="nw-mini-wiki">
+  <div class="nw-node-type">{{ type_value | upper }}</div>
+  <div class="nw-node-desc">{{ attrs.title }}</div>
+
+  <div class="nw-attr-grid">
+    <div class="nw-attr-box">
+      <div class="nw-attr-label">Department</div>
+      <div class="nw-attr-value">{{ attrs.department }}</div>
+    </div>
+    <div class="nw-attr-box">
+      <div class="nw-attr-label">Reports</div>
+      <div class="nw-attr-value">{{ n_in }}</div>
+    </div>
+  </div>
+
+  <div class="nw-connections">
+    Tenure: <strong>{{ attrs.tenure_years }} years</strong>
+  </div>
+</div>

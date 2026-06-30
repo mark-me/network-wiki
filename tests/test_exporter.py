@@ -443,3 +443,85 @@ def test_default_templates_render_with_custom_type_attr(tmp_path):
     exporter.export(out)
     # mini_default.html.j2 shows type_value in nw-node-type div
     assert "ROUTER" in out.read_text(encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Light/dark toggle visibility — regression test for Bootswatch + toggle bug
+# ---------------------------------------------------------------------------
+
+def test_toggle_hidden_when_bootswatch_theme_active(simple_graph, tmp_path):
+    """Bootswatch stylesheets ignore data-bs-theme, so the toggle must not
+    be shown — it would have no visible effect and confuse the user."""
+    out = tmp_path / "bsw.html"
+    GraphExporter(simple_graph, theme=ThemeConfig(bootswatch_theme="darkly")).export(out)
+    html = out.read_text(encoding="utf-8")
+    assert "nw-scheme-btn" not in html
+
+
+def test_toggle_visible_for_plain_bootstrap(simple_graph, tmp_path):
+    """Plain Bootstrap responds to data-bs-theme, so the toggle must be shown."""
+    out = tmp_path / "plain.html"
+    GraphExporter(simple_graph, theme=ThemeConfig()).export(out)
+    html = out.read_text(encoding="utf-8")
+    assert "nw-scheme-btn" in html
+    assert "toggleScheme" in html
+
+
+# ---------------------------------------------------------------------------
+# Mixed wiki strategies — node templates (file + inline) + edge callback
+# ---------------------------------------------------------------------------
+
+def test_mixed_node_wiki_strategies(tmp_path):
+    """Per-type file templates, inline templates, and auto-fallback can
+    coexist on a single WikiTemplateRenderer."""
+    g = ig.Graph(directed=True)
+    g.add_vertices(3)
+    g.vs["name"] = ["Exec", "Manager", "Other"]
+    g.vs["type"] = ["executive", "manager", "untemplated"]
+    g.add_edges([(1, 0), (2, 1)])
+
+    tmpl_dir = tmp_path / "tmpl"
+    tmpl_dir.mkdir()
+    (tmpl_dir / "full_exec.html.j2").write_text(
+        "<h2>FILE_EXEC: {{ label }}</h2>", encoding="utf-8"
+    )
+
+    renderer = WikiTemplateRenderer(
+        template_dir=str(tmpl_dir),
+        full_template_files_by_type={"executive": "full_exec.html.j2"},
+        full_templates_by_type={"manager": "<h2>INLINE_MANAGER: {{ label }}</h2>"},
+        undefined_strict=False,
+    )
+
+    out = tmp_path / "mixed.html"
+    GraphExporter(g, wiki_renderer=renderer).export(out)
+    html = out.read_text(encoding="utf-8")
+
+    assert "FILE_EXEC: Exec" in html
+    assert "INLINE_MANAGER: Manager" in html
+    # "untemplated" type has no template registered → auto-fallback table
+    assert "Other" in html
+
+
+def test_edge_wiki_callback_with_node_template_renderer(tmp_path):
+    """Edge wikis (callback) and node wikis (template renderer) work together."""
+    g = ig.Graph(directed=True)
+    g.add_vertices(2)
+    g.vs["name"] = ["A", "B"]
+    g.vs["type"] = ["x", "x"]
+    g.add_edges([(0, 1)])
+    g.es["label_text"] = ["connects"]
+
+    exporter = GraphExporter(
+        g,
+        wiki_renderer=WikiTemplateRenderer(undefined_strict=False),
+        edge_wiki_callback=lambda e: WikiContent(
+            mini_html=f"<p>EDGE: {e['label_text']}</p>",
+            full_html=f"<h2>EDGE_FULL: {e['label_text']}</h2>",
+        ),
+    )
+    out = tmp_path / "edge_node_mix.html"
+    exporter.export(out)
+    html = out.read_text(encoding="utf-8")
+    assert "EDGE: connects" in html
+    assert "EDGE_FULL: connects" in html

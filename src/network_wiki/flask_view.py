@@ -196,6 +196,7 @@ class GraphView:
             accent_color=t.accent_color,
             panel_width=t.panel_width_px,
             base_scheme=t.base_scheme,
+            bootswatch_theme=t.bootswatch_theme,
             lang=t.lang,
             layout_json=json.dumps(exporter.layout.to_vis(), ensure_ascii=False),
             data_url=f"{self._url_prefix}/{active_name}/data",

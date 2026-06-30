@@ -2,15 +2,16 @@
 
 [![CI](https://github.com/mark-me/network-wiki/actions/workflows/ci.yml/badge.svg)](https://github.com/mark-me/network-wiki/actions/workflows/ci.yml)
 [![Documentation](https://github.com/mark-me/network-wiki/actions/workflows/docs.yml/badge.svg)](https://mark-me.github.io/network-wiki/)
+[![Python Versions](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Turn an [igraph](https://igraph.org) graph into an interactive HTML page where every node and edge has its own wiki page.
+Turn an [igraph](https://igraph.org) graph into an interactive HTML page where every node and edge has its own wiki page. A Python package for transforming igraph graphs into interactive wiki-enabled visualizations.
 
 ![Interactive Graph Preview](./docs-site/docs/images/banner.png)
 
 ## 🤔 Why
 
-You already have the graph — a pipeline, an org chart, a service topology, a network diagram. `network-wiki` turns it into something people can click around in: a force-directed layout where each node opens a side panel, and a full wiki page if there's more to say. No frontend code required.
+You already have the graph in Python — a pipeline, an org chart, a service topology, a network diagram. `network-wiki` (a Python package) turns it into something people can click around in: a force-directed layout where each node opens a side panel, and a full wiki page if there's more to say. No frontend code required.
 
 - 📊 Interactive graphs powered by [vis.js](https://visjs.org/)
 - 📖 Per-node and per-edge wikis — compact side panel + full-screen modal

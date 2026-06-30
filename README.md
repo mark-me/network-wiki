@@ -8,7 +8,7 @@ Turn an [igraph](https://igraph.org) graph into an interactive HTML page where e
 
 ![Interactive Graph Preview](./docs-site/docs/images/banner.png)
 
-## Why
+## 🤔 Why
 
 You already have the graph — a pipeline, an org chart, a service topology, a network diagram. `network-wiki` turns it into something people can click around in: a force-directed layout where each node opens a side panel, and a full wiki page if there's more to say. No frontend code required.
 
@@ -20,7 +20,7 @@ You already have the graph — a pipeline, an org chart, a service topology, a n
 - 🌶️ Optional Flask integration — serve multiple graphs, swap them client-side, or rebuild from live data on every request
 - 📦 Works as a single static HTML file with zero server required
 
-## Install
+## 📥 Install
 
 ```bash
 pip install git+https://github.com/mark-me/network-wiki.git
@@ -33,7 +33,7 @@ pip install "network-wiki[flask] @ git+https://github.com/mark-me/network-wiki.g
 uv add git+https://github.com/mark-me/network-wiki.git
 ```
 
-## Quickstart
+## 🚀 Quickstart
 
 ```python
 import igraph as ig
@@ -60,7 +60,7 @@ app = Flask(__name__)
 GraphView(exporter, url_prefix="/graph").register(app)
 ```
 
-## Documentation
+## 📖 Documentation
 
 The README stops here on purpose — everything else lives in the docs:
 
@@ -72,7 +72,7 @@ The README stops here on purpose — everything else lives in the docs:
 
 Runnable examples covering every feature, including a full org-chart with mixed wiki strategies, live in [`examples/`](examples/).
 
-## Development
+## 🛠️ Development
 
 ```bash
 git clone https://github.com/mark-me/network-wiki.git
@@ -83,6 +83,6 @@ uv run pytest
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the pip-based workflow and PR guidelines.
 
-## License
+## ⚖️ License
 
 MIT — see [LICENSE](LICENSE).

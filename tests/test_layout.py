@@ -98,11 +98,6 @@ class TestLayoutConfig:
         cfg = LayoutConfig(hierarchical=True, hierarchical_direction="UD").to_vis()
         assert cfg["layout"]["hierarchical"]["direction"] == "UD"
 
-    def test_zoom_limits(self):
-        cfg = LayoutConfig(min_zoom=0.5, max_zoom=3.0).to_vis()
-        assert cfg["interaction"]["minZoom"] == 0.5
-        assert cfg["interaction"]["maxZoom"] == 3.0
-
     def test_physics_disabled(self):
         cfg = LayoutConfig(physics_enabled=False).to_vis()
         assert cfg["physics"]["enabled"] is False

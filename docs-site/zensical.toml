@@ -18,6 +18,7 @@ nav = [
   { "User guide" = [
     { "Overview" = "user-guide/index.md" },
     { "Graph exporter" = "user-guide/exporter.md" },
+    { "Node and edge styling" = "user-guide/styling.md" },
     { "Templates" = "user-guide/templates.md" },
     { "Themes" = "user-guide/themes.md" },
     { "Configuration" = "user-guide/configuration.md" },

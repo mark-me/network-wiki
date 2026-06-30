@@ -1,43 +1,53 @@
 # Rendering Pipeline
 
-## Step 1: Graph Traversal
+## Step 1: Node Construction
 
 `_build_nodes()` iterates over `graph.vs`:
 
 1. Extract label (`name` → `label` → `"Node N"`)
-2. Apply node style callback or fallback
-3. Generate wiki content (renderer → callback → auto-gen)
+2. Apply node style callback, or fall back to `default_node_style`
+3. Generate wiki content: `wiki_renderer` → `wiki_callback` → `_auto_wiki()` (renders all vertex attributes generically)
 
-Returns `(vis_nodes_list, wiki_content_map)`.
+Returns `(vis_nodes_list, node_wiki_map)`.
 
 ## Step 2: Edge Construction
 
-`_build_edges()` processes `graph.es`:
+`_build_edges()` iterates over `graph.es`:
 
-1. Get edge index for JS lookup
-2. Resolve edge style
-3. Build edge wiki map only if callback exists or attributes present
+1. Apply edge style callback, or fall back to `default_edge_style`; the edge's igraph index is stored on the dict for client-side lookup
+2. Build the edge wiki entry only when `edge_wiki_callback` is set, **or** when no callback is set but the graph has at least one edge attribute (`graph.edge_attributes()` is non-empty) — in that case `_auto_edge_wiki()` renders the attributes generically
+3. Edges with neither a callback nor any edge attributes get no wiki entry at all, so clicking them does nothing
 
 Returns `(vis_edges_list, edge_wiki_map)`.
 
 ## Step 3: Template Assembly
 
-`_build_template_vars()`:
+`_build_template_vars()` — the single point where Python data becomes the Jinja2 context, shared by both static export and Flask serving:
 
 1. Serialize nodes/edges to JSON strings
-2. Convert wiki maps to `{id: {mini_html, full_html}}` dictionaries
-3. Merge theme variables
-4. Add layout config as JSON
+2. Convert node and edge wiki maps to `{id: {label, mini, full}}` dictionaries
+3. Merge theme variables (`css_url`, `accent_color`, `base_scheme`, `bootswatch_theme`, ...)
+4. Add the layout config as a JSON string
 
-Outputs dict for Jinja2 context injection.
+Returns a single dict suitable for `Template.render(**vars)`.
 
 ## Step 4: Template Rendering
 
-`render_html()`:
+`render_html(template="page.html.j2")`:
 
-1. Load Jinja2 Environment with filesystem loaders (user dir → inline store → package)
-2. Parse `page.html.j2` (or `page_flask.html.j2`)
-3. Inject assembled vars
-4. Return rendered HTML string
+1. Load a Jinja2 `Environment` pointed at the package's bundled `templates/` directory
+2. Parse the requested template — `page.html.j2` for static export, `page_flask.html.j2` for the Flask shell
+3. Render with the vars from Step 3
+4. Return the HTML as a string
 
-Final write occurs in `export()` via `Path.write_text()`.
+`export(path)` calls `render_html()` and writes the result with `Path.write_text()`.
+
+## Flask Serving Differs After Step 4
+
+`GraphView` does **not** call `export()`. Instead:
+
+- The page route (`/<name>/`) renders `page_flask.html.j2` directly via a separate template call that omits the graph data — the shell ships with no inline `nodes`/`edges`/wiki JSON
+- The data route (`/<name>/data`) calls `_build_template_vars()` directly and returns the node/edge/wiki data as a `jsonify()` response, skipping HTML rendering entirely
+- The browser fetches `/<name>/data` on page load (and again whenever the graph picker changes), then populates the vis.js `DataSet` client-side
+
+This split is what allows `GraphView` to swap graphs without a full page reload, and to support factory-based graphs that rebuild on every request — see [Architecture](architecture.md#data-flow--flask-serving).

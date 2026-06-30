@@ -26,8 +26,14 @@ Open `graph.html` in a browser to see an interactive vis.js-powered graph with c
 ## Key Features
 
 * Interactive graphs powered by [vis.js](https://visjs.org/)
-* Expandable wikis for nodes and edges with compact side-panel view and full-screen modal
-* Bootswatch 5 themes with light/dark mode toggle persisted in localStorage
+* Expandable wikis for nodes and edges, with a compact side-panel view and a full-screen modal
+* 25 Bootswatch 5 themes, or plain Bootstrap with a user-toggleable light/dark mode (persisted in `localStorage`)
 * Customizable styling for nodes and edges via callback functions
-* Jinja2 templating for rich wiki content generation
-* Flask integration via GraphView blueprint for dynamic serving
+* Jinja2 templating for rich, per-type wiki content
+* Flask integration via `GraphView` for serving one or more graphs dynamically, with live data support
+
+## Where to Go Next
+
+* New to network-wiki? Start with the **[Tutorial](tutorial/index.md)**
+* Looking for a specific API or config option? See the **[User Guide](user-guide/index.md)**
+* Want to contribute or understand the internals? See the **[Developer Guide](developer/index.md)**

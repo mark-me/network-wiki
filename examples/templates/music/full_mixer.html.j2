@@ -1,0 +1,22 @@
+<h2>{{ label }}</h2>
+<span class="badge text-bg-primary mb-3">{{ attrs.title }}</span>
+<p class="lead">{{ attrs.bio }}</p>
+
+<table class="table table-sm table-striped">
+  <tbody>
+    <tr><th scope="row">Album</th><td>{{ attrs.album }}</td></tr>
+    <tr><th scope="row">Studio Location</th><td>{{ attrs.studio_location }}</td></tr>
+    <tr><th scope="row">Mixing Sessions</th><td>{{ attrs.sessions_count }}</td></tr>
+  </tbody>
+</table>
+
+{% if neighbours %}
+<div class="mt-3">
+  <h5 class="fw-bold border-bottom pb-2">Session Contributions</h5>
+  <div class="d-flex flex-wrap gap-2">
+    {% for n in neighbours %}
+    <span class="badge bg-secondary">{{ n }}</span>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}

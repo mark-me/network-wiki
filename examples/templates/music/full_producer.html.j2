@@ -1,0 +1,22 @@
+<h2>{{ label }}</h2>
+<span class="badge text-bg-light mb-3" style="background-color: #6f42c1 !important;">{{ attrs.title }}</span>
+<p class="lead">{{ attrs.bio }}</p>
+
+<table class="table table-sm table-striped">
+  <tbody>
+    <tr><th scope="row">Album</th><td>{{ attrs.album }}</td></tr>
+    <tr><th scope="row">Studio</th><td>{{ attrs.studio_location }}</td></tr>
+    <tr><th scope="row">Total Sessions</th><td>{{ attrs.sessions_count }}</td></tr>
+  </tbody>
+</table>
+
+{% if neighbours %}
+<div class="card mt-3">
+  <div class="card-header fw-bold">Collaborators</div>
+  <ul class="list-group list-group-flush">
+    {% for n in neighbours %}
+    <li class="list-group-item">{{ n }}</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}

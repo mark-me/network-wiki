@@ -1,0 +1,303 @@
+
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Midnight Echoes — Album Production Team</title>
+
+  
+  <link id="nw-bs-css" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    rel="stylesheet"
+  >
+
+  
+  <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+
+  <style>
+    /* ── Custom properties ────────────────────────────────────────────── */
+    :root {
+      --nw-accent:      #0d6efd;
+      --nw-panel-width: 380px;
+    }
+
+    /* ── Full-screen layout ───────────────────────────────────────────── */
+    html, body { height: 100%; overflow: hidden; }
+
+    #nw-graph-container {
+      position: fixed;
+      inset: 0;
+      padding-top: 44px;
+      transition: right 0.3s ease;
+    }
+    #nw-graph-container.panel-open { right: var(--nw-panel-width); }
+
+    /* ── Toolbar ──────────────────────────────────────────────────────── */
+    #nw-toolbar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 50;
+      height: 44px;
+      background: color-mix(in srgb, var(--bs-body-bg) 88%, transparent);
+      backdrop-filter: blur(6px);
+      border-bottom: 1px solid var(--bs-border-color);
+      padding: 0 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .nw-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-right: auto;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ── Side panel ───────────────────────────────────────────────────── */
+    #nw-wiki-panel {
+      position: fixed;
+      top: 0; right: 0;
+      width: var(--nw-panel-width);
+      height: 100vh;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+      border-left: 1px solid var(--bs-border-color);
+      background: var(--bs-body-bg);
+      box-shadow: -4px 0 24px rgba(0,0,0,.15);
+    }
+    #nw-wiki-panel.open { transform: translateX(0); }
+
+    #nw-panel-header {
+      flex-shrink: 0;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--bs-border-color);
+      background: var(--bs-tertiary-bg);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #nw-panel-title {
+      flex: 1;
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--nw-accent);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    #nw-panel-body { flex: 1; overflow-y: auto; padding: 16px; }
+
+    /* ── Mini-wiki helpers ────────────────────────────────────────────── */
+    .nw-node-type {
+      font-size: .7rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--bs-secondary-color);
+      margin-bottom: 6px;
+    }
+    .nw-node-desc  { font-size: .9rem; line-height: 1.6; margin-bottom: 12px; }
+    .nw-attr-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .nw-attr-box {
+      background: var(--bs-tertiary-bg);
+      border-radius: 6px;
+      padding: 8px 10px;
+      border: 1px solid var(--bs-border-color);
+    }
+    .nw-attr-label {
+      font-size: .65rem;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--bs-secondary-color);
+    }
+    .nw-attr-value { font-size: .95rem; font-weight: 600; }
+    .nw-connections { font-size: .85rem; color: var(--bs-secondary-color); }
+    .nw-connections strong { color: var(--nw-accent); }
+
+    /* ── Wiki-body typography ─────────────────────────────────────────── */
+    .nw-wiki-body h2 { color: var(--nw-accent); margin-top: 1.2rem; }
+    .nw-wiki-body h3 { color: var(--bs-secondary-color); margin-top: 1rem; }
+    .nw-modal-title  { color: var(--nw-accent); }
+  </style>
+</head>
+<body>
+
+
+<div id="nw-toolbar">
+  <span class="nw-title">Midnight Echoes — Album Production Team</span>
+
+  
+  <button
+    class="btn btn-sm btn-outline-secondary"
+    title="Fit graph in view"
+    onclick="network.fit()"
+  ><i class="bi bi-fullscreen"></i></button>
+
+  
+  
+  <button
+    class="btn btn-sm btn-outline-secondary"
+    id="nw-scheme-btn"
+    title="Toggle light / dark"
+    onclick="toggleScheme()"
+  ><i class="bi bi-circle-half" id="nw-scheme-icon"></i></button>
+  
+</div>
+
+
+<div id="nw-graph-container"></div>
+
+
+<div id="nw-wiki-panel">
+  <div id="nw-panel-header">
+    <span id="nw-panel-title">—</span>
+    <button
+      class="btn btn-sm btn-outline-primary"
+      id="nw-btn-full-wiki"
+      onclick="openFullWiki()"
+      style="display:none;"
+    ><i class="bi bi-book"></i> Wiki</button>
+    <button
+      class="btn btn-sm btn-outline-secondary"
+      onclick="closePanel()"
+      title="Close"
+    ><i class="bi bi-x-lg"></i></button>
+  </div>
+  <div id="nw-panel-body" class="nw-wiki-body"></div>
+</div>
+
+
+<div class="modal fade" id="nw-wiki-modal" tabindex="-1"
+     aria-labelledby="nw-wiki-modal-label" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title nw-modal-title" id="nw-wiki-modal-label">Wiki</h5>
+        <button type="button" class="btn-close"
+                data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body nw-wiki-body" id="nw-wiki-modal-body"></div>
+    </div>
+  </div>
+</div>
+
+
+<script
+  src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+  integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmHN9e0b6h4hm6S1oG2CzXqJJnn2X"
+  crossorigin="anonymous"
+></script>
+
+<script>
+// ── Static data injected by Python ───────────────────────────────────────────
+const NODE_WIKI   = {"0": {"label": "Maya Rodriguez", "mini": "<div class=\"nw-mini-wiki\">\n  <div class=\"nw-node-type\" style=\"color: #6f42c1;\">PRODUCER</div>\n  <div class=\"nw-node-desc\">Maya Rodriguez</div>\n  <div class=\"nw-attr-grid\">\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Role</div>\n      <div class=\"nw-attr-value\">Executive Producer</div>\n    </div>\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Sessions</div>\n      <div class=\"nw-attr-value\">8</div>\n    </div>\n  </div>\n</div>", "full": "<h2>Maya Rodriguez</h2>\n<span class=\"badge text-bg-light mb-3\" style=\"background-color: #6f42c1 !important;\">Executive Producer</span>\n<p class=\"lead\">Oversaw the creative vision and production across all album sessions.</p>\n\n<table class=\"table table-sm table-striped\">\n  <tbody>\n    <tr><th scope=\"row\">Album</th><td>Midnight Echoes</td></tr>\n    <tr><th scope=\"row\">Studio</th><td>Abbey Road Studios, London</td></tr>\n    <tr><th scope=\"row\">Total Sessions</th><td>8</td></tr>\n  </tbody>\n</table>\n\n<div class=\"card mt-3\">\n  <div class=\"card-header fw-bold\">Collaborators</div>\n  <ul class=\"list-group list-group-flush\">\n    <li class=\"list-group-item\">Alex Kim</li>\n    <li class=\"list-group-item\">Sophie Laurent</li>\n  </ul>\n</div>\n"}, "1": {"label": "Alex Kim", "mini": "<div class=\"nw-mini-wiki\">\n\n  <div class=\"nw-node-type\">MIXING_ENGINEER</div>\n\n\n  <div class=\"nw-attr-grid\">\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Type</div>\n      <div class=\"nw-attr-value\">mixing_engineer</div>\n    </div>\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Title</div>\n      <div class=\"nw-attr-value\">Mixing Engineer</div>\n    </div>\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Album</div>\n      <div class=\"nw-attr-value\">Midnight Echoes</div>\n    </div>\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Bio</div>\n      <div class=\"nw-attr-value\">Blended vocals and instrumentation into a cohesive sonic landscape.</div>\n    </div>\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Studio location</div>\n      <div class=\"nw-attr-value\">Electric Lady Studios, NYC</div>\n    </div>\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Sessions count</div>\n      <div class=\"nw-attr-value\">12</div>\n    </div>\n\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Incoming</div>\n      <div class=\"nw-attr-value\">2</div>\n    </div>\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Outgoing</div>\n      <div class=\"nw-attr-value\">1</div>\n    </div>\n  </div>\n\n  <div class=\"nw-connections\">\n    Connected to <strong>3</strong> other nodes\n  </div>\n\n</div>", "full": "<h2>Alex Kim</h2>\n<span class=\"badge text-bg-primary mb-3\">Mixing Engineer</span>\n<p class=\"lead\">Blended vocals and instrumentation into a cohesive sonic landscape.</p>\n\n<table class=\"table table-sm table-striped\">\n  <tbody>\n    <tr><th scope=\"row\">Album</th><td>Midnight Echoes</td></tr>\n    <tr><th scope=\"row\">Studio Location</th><td>Electric Lady Studios, NYC</td></tr>\n    <tr><th scope=\"row\">Mixing Sessions</th><td>12</td></tr>\n  </tbody>\n</table>\n\n<div class=\"mt-3\">\n  <h5 class=\"fw-bold border-bottom pb-2\">Session Contributions</h5>\n  <div class=\"d-flex flex-wrap gap-2\">\n    <span class=\"badge bg-secondary\">Maya Rodriguez</span>\n    <span class=\"badge bg-secondary\">Javier Moreno</span>\n    <span class=\"badge bg-secondary\">Emma Watson-Brown</span>\n  </div>\n</div>\n"}, "2": {"label": "Sophie Laurent", "mini": "<div class=\"nw-mini-wiki\">\n\n  <div class=\"nw-node-type\">MASTERING_ENGINEER</div>\n\n\n  <div class=\"nw-attr-grid\">\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Type</div>\n      <div class=\"nw-attr-value\">mastering_engineer</div>\n    </div>\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Title</div>\n      <div class=\"nw-attr-value\">Mastering Engineer</div>\n    </div>\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Album</div>\n      <div class=\"nw-attr-value\">Midnight Echoes</div>\n    </div>\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Bio</div>\n      <div class=\"nw-attr-value\">Applied final polish and ensured commercial-grade audio quality.</div>\n    </div>\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Studio location</div>\n      <div class=\"nw-attr-value\">Sterling Sound, NYC</div>\n    </div>\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Sessions count</div>\n      <div class=\"nw-attr-value\">3</div>\n    </div>\n\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Incoming</div>\n      <div class=\"nw-attr-value\">2</div>\n    </div>\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Outgoing</div>\n      <div class=\"nw-attr-value\">1</div>\n    </div>\n  </div>\n\n  <div class=\"nw-connections\">\n    Connected to <strong>3</strong> other nodes\n  </div>\n\n</div>", "full": "<h2>Sophie Laurent</h2>\n\n<span class=\"badge text-bg-secondary mb-2\">mastering_engineer</span>\n\n\n<h3>Attributes</h3>\n<table class=\"table table-sm table-striped\">\n  <thead><tr><th>Property</th><th>Value</th></tr></thead>\n  <tbody>\n  <tr>\n    <td>Type</td>\n    <td>mastering_engineer</td>\n  </tr>\n  <tr>\n    <td>Title</td>\n    <td>Mastering Engineer</td>\n  </tr>\n  <tr>\n    <td>Album</td>\n    <td>Midnight Echoes</td>\n  </tr>\n  <tr>\n    <td>Bio</td>\n    <td>Applied final polish and ensured commercial-grade audio quality.</td>\n  </tr>\n  <tr>\n    <td>Studio location</td>\n    <td>Sterling Sound, NYC</td>\n  </tr>\n  <tr>\n    <td>Sessions count</td>\n    <td>3</td>\n  </tr>\n  </tbody>\n</table>\n\n<h3>Connections</h3>\n<table class=\"table table-sm\">\n  <tbody>\n  <tr><td>Incoming</td><td><strong>2</strong></td></tr>\n  <tr><td>Outgoing</td><td><strong>1</strong></td></tr>\n  </tbody>\n</table>\n\n<h3>Connected nodes</h3>\n<ul class=\"list-unstyled\">\n  <li><i class=\"bi bi-diagram-3 me-1\"></i>Maya Rodriguez</li>\n  <li><i class=\"bi bi-diagram-3 me-1\"></i>Taro Suzuki</li>\n  <li><i class=\"bi bi-diagram-3 me-1\"></i>Nina Petrova</li>\n</ul>\n"}, "3": {"label": "Javier Moreno", "mini": "\n<div class=\"nw-mini-wiki\">\n  <div class=\"nw-node-type\">MUSICIAN</div>\n  <div class=\"nw-node-desc\">Lead Guitarist</div>\n  <div class=\"nw-attr-grid\">\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Studio</div>\n      <div class=\"nw-attr-value\">Live Remote</div>\n    </div>\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Sessions</div>\n      <div class=\"nw-attr-value\">4</div>\n    </div>\n  </div>\n</div>", "full": "\n<h2>Javier Moreno</h2>\n<span class=\"badge text-bg-info mb-2\">Lead Guitarist</span>\n<p class=\"lead\">Delivered signature guitar riffs and lead melodies throughout the album.</p>\n<table class=\"table table-sm table-striped\">\n  <tr><td>Album</td><td>Midnight Echoes</td></tr>\n  <tr><td>Studio</td><td>Live Remote</td></tr>\n  <tr><td>Total Sessions</td><td>4</td></tr>\n</table>\n<h3>Contributes To Session With</h3>\n<ul><li>Alex Kim</li></ul>\n"}, "4": {"label": "Emma Watson-Brown", "mini": "\n<div class=\"nw-mini-wiki\">\n  <div class=\"nw-node-type\">MUSICIAN</div>\n  <div class=\"nw-node-desc\">Violinist</div>\n  <div class=\"nw-attr-grid\">\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Studio</div>\n      <div class=\"nw-attr-value\">Abbey Road Studios, London</div>\n    </div>\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Sessions</div>\n      <div class=\"nw-attr-value\">5</div>\n    </div>\n  </div>\n</div>", "full": "\n<h2>Emma Watson-Brown</h2>\n<span class=\"badge text-bg-info mb-2\">Violinist</span>\n<p class=\"lead\">Added orchestral textures and string arrangements to key tracks.</p>\n<table class=\"table table-sm table-striped\">\n  <tr><td>Album</td><td>Midnight Echoes</td></tr>\n  <tr><td>Studio</td><td>Abbey Road Studios, London</td></tr>\n  <tr><td>Total Sessions</td><td>5</td></tr>\n</table>\n<h3>Contributes To Session With</h3>\n<ul><li>Alex Kim</li></ul>\n"}, "5": {"label": "Taro Suzuki", "mini": "\n<div class=\"nw-mini-wiki\">\n  <div class=\"nw-node-type\">MUSICIAN</div>\n  <div class=\"nw-node-desc\">Drummer</div>\n  <div class=\"nw-attr-grid\">\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Studio</div>\n      <div class=\"nw-attr-value\">Air Studios, London</div>\n    </div>\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Sessions</div>\n      <div class=\"nw-attr-value\">6</div>\n    </div>\n  </div>\n</div>", "full": "\n<h2>Taro Suzuki</h2>\n<span class=\"badge text-bg-info mb-2\">Drummer</span>\n<p class=\"lead\">Provided rhythmic foundation and dynamic percussion layers.</p>\n<table class=\"table table-sm table-striped\">\n  <tr><td>Album</td><td>Midnight Echoes</td></tr>\n  <tr><td>Studio</td><td>Air Studios, London</td></tr>\n  <tr><td>Total Sessions</td><td>6</td></tr>\n</table>\n<h3>Contributes To Session With</h3>\n<ul><li>Sophie Laurent</li></ul>\n"}, "6": {"label": "Nina Petrova", "mini": "\n<div class=\"nw-mini-wiki\">\n  <div class=\"nw-node-type\">MUSICIAN</div>\n  <div class=\"nw-node-desc\">Vocal Arranger</div>\n  <div class=\"nw-attr-grid\">\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Studio</div>\n      <div class=\"nw-attr-value\">Remote</div>\n    </div>\n    <div class=\"nw-attr-box\">\n      <div class=\"nw-attr-label\">Sessions</div>\n      <div class=\"nw-attr-value\">2</div>\n    </div>\n  </div>\n</div>", "full": "\n<h2>Nina Petrova</h2>\n<span class=\"badge text-bg-info mb-2\">Vocal Arranger</span>\n<p class=\"lead\">Crafted vocal harmonies and choir arrangements for ballad tracks.</p>\n<table class=\"table table-sm table-striped\">\n  <tr><td>Album</td><td>Midnight Echoes</td></tr>\n  <tr><td>Studio</td><td>Remote</td></tr>\n  <tr><td>Total Sessions</td><td>2</td></tr>\n</table>\n<h3>Contributes To Session With</h3>\n<ul><li>Sophie Laurent</li></ul>\n"}};
+const EDGE_WIKI   = {"0": {"label": "Edge 0", "mini": "\n    <div class=\"nw-mini-wiki\">\n      <div class=\"nw-node-type\">SESSION CONTRIBUTION</div>\n      <div class=\"nw-node-desc\">Maya Rodriguez ← Alex Kim</div>\n      <div class=\"nw-attr-grid\">\n        <div class=\"nw-attr-box\">\n          <div class=\"nw-attr-label\">First Session</div>\n          <div class=\"nw-attr-value\">2021-03</div>\n        </div>\n      </div>\n    </div>\n    ", "full": "\n    <h2>Maya Rodriguez ← Alex Kim</h2>\n    <span class=\"badge text-bg-secondary mb-2\">contributes to session</span>\n    <table class=\"table table-sm table-striped\">\n      <tr><td>First Recorded</td><td>2021-03</td></tr>\n      <tr><td>Role</td><td>contributes to session</td></tr>\n    </table>\n    "}, "1": {"label": "Edge 1", "mini": "\n    <div class=\"nw-mini-wiki\">\n      <div class=\"nw-node-type\">SESSION CONTRIBUTION</div>\n      <div class=\"nw-node-desc\">Maya Rodriguez ← Sophie Laurent</div>\n      <div class=\"nw-attr-grid\">\n        <div class=\"nw-attr-box\">\n          <div class=\"nw-attr-label\">First Session</div>\n          <div class=\"nw-attr-value\">2022-01</div>\n        </div>\n      </div>\n    </div>\n    ", "full": "\n    <h2>Maya Rodriguez ← Sophie Laurent</h2>\n    <span class=\"badge text-bg-secondary mb-2\">contributes to session</span>\n    <table class=\"table table-sm table-striped\">\n      <tr><td>First Recorded</td><td>2022-01</td></tr>\n      <tr><td>Role</td><td>contributes to session</td></tr>\n    </table>\n    "}, "2": {"label": "Edge 2", "mini": "\n    <div class=\"nw-mini-wiki\">\n      <div class=\"nw-node-type\">SESSION CONTRIBUTION</div>\n      <div class=\"nw-node-desc\">Alex Kim ← Javier Moreno</div>\n      <div class=\"nw-attr-grid\">\n        <div class=\"nw-attr-box\">\n          <div class=\"nw-attr-label\">First Session</div>\n          <div class=\"nw-attr-value\">2023-06</div>\n        </div>\n      </div>\n    </div>\n    ", "full": "\n    <h2>Alex Kim ← Javier Moreno</h2>\n    <span class=\"badge text-bg-secondary mb-2\">contributes to session</span>\n    <table class=\"table table-sm table-striped\">\n      <tr><td>First Recorded</td><td>2023-06</td></tr>\n      <tr><td>Role</td><td>contributes to session</td></tr>\n    </table>\n    "}, "3": {"label": "Edge 3", "mini": "\n    <div class=\"nw-mini-wiki\">\n      <div class=\"nw-node-type\">SESSION CONTRIBUTION</div>\n      <div class=\"nw-node-desc\">Alex Kim ← Emma Watson-Brown</div>\n      <div class=\"nw-attr-grid\">\n        <div class=\"nw-attr-box\">\n          <div class=\"nw-attr-label\">First Session</div>\n          <div class=\"nw-attr-value\">2023-09</div>\n        </div>\n      </div>\n    </div>\n    ", "full": "\n    <h2>Alex Kim ← Emma Watson-Brown</h2>\n    <span class=\"badge text-bg-secondary mb-2\">contributes to session</span>\n    <table class=\"table table-sm table-striped\">\n      <tr><td>First Recorded</td><td>2023-09</td></tr>\n      <tr><td>Role</td><td>contributes to session</td></tr>\n    </table>\n    "}, "4": {"label": "Edge 4", "mini": "\n    <div class=\"nw-mini-wiki\">\n      <div class=\"nw-node-type\">SESSION CONTRIBUTION</div>\n      <div class=\"nw-node-desc\">Sophie Laurent ← Taro Suzuki</div>\n      <div class=\"nw-attr-grid\">\n        <div class=\"nw-attr-box\">\n          <div class=\"nw-attr-label\">First Session</div>\n          <div class=\"nw-attr-value\">2022-11</div>\n        </div>\n      </div>\n    </div>\n    ", "full": "\n    <h2>Sophie Laurent ← Taro Suzuki</h2>\n    <span class=\"badge text-bg-secondary mb-2\">contributes to session</span>\n    <table class=\"table table-sm table-striped\">\n      <tr><td>First Recorded</td><td>2022-11</td></tr>\n      <tr><td>Role</td><td>contributes to session</td></tr>\n    </table>\n    "}, "5": {"label": "Edge 5", "mini": "\n    <div class=\"nw-mini-wiki\">\n      <div class=\"nw-node-type\">SESSION CONTRIBUTION</div>\n      <div class=\"nw-node-desc\">Sophie Laurent ← Nina Petrova</div>\n      <div class=\"nw-attr-grid\">\n        <div class=\"nw-attr-box\">\n          <div class=\"nw-attr-label\">First Session</div>\n          <div class=\"nw-attr-value\">2023-02</div>\n        </div>\n      </div>\n    </div>\n    ", "full": "\n    <h2>Sophie Laurent ← Nina Petrova</h2>\n    <span class=\"badge text-bg-secondary mb-2\">contributes to session</span>\n    <table class=\"table table-sm table-striped\">\n      <tr><td>First Recorded</td><td>2023-02</td></tr>\n      <tr><td>Role</td><td>contributes to session</td></tr>\n    </table>\n    "}};
+const VIS_NODES   = [{"id": 0, "label": "Maya Rodriguez", "shape": "star", "size": 30, "color": {"background": "#6f42c133", "border": "#6f42c1", "highlight": {"background": "#6f42c188", "border": "#6f42c1"}, "hover": {"background": "#6f42c166", "border": "#6f42c1"}}, "borderWidth": 2, "borderWidthSelected": 3, "font": {"color": "#ffffff", "size": 14, "face": "Segoe UI, sans-serif", "bold": true, "italic": false, "align": "center"}, "margin": 10, "shadow": {"enabled": false, "color": "rgba(0,0,0,0.5)", "size": 10, "x": 5, "y": 5}, "title": "Maya Rodriguez — Executive Producer", "group": "producer"}, {"id": 1, "label": "Alex Kim", "shape": "diamond", "size": 24, "color": {"background": "#0d6efd33", "border": "#0d6efd", "highlight": {"background": "#0d6efd88", "border": "#0d6efd"}, "hover": {"background": "#0d6efd66", "border": "#0d6efd"}}, "borderWidth": 2, "borderWidthSelected": 3, "font": {"color": "#ffffff", "size": 14, "face": "Segoe UI, sans-serif", "bold": false, "italic": false, "align": "center"}, "margin": 10, "shadow": {"enabled": false, "color": "rgba(0,0,0,0.5)", "size": 10, "x": 5, "y": 5}, "title": "Alex Kim — Mixing Engineer", "group": "mixing_engineer"}, {"id": 2, "label": "Sophie Laurent", "shape": "triangle_up", "size": 24, "color": {"background": "#fd7e1433", "border": "#fd7e14", "highlight": {"background": "#fd7e1488", "border": "#fd7e14"}, "hover": {"background": "#fd7e1466", "border": "#fd7e14"}}, "borderWidth": 2, "borderWidthSelected": 3, "font": {"color": "#ffffff", "size": 14, "face": "Segoe UI, sans-serif", "bold": false, "italic": false, "align": "center"}, "margin": 10, "shadow": {"enabled": false, "color": "rgba(0,0,0,0.5)", "size": 10, "x": 5, "y": 5}, "title": "Sophie Laurent — Mastering Engineer", "group": "mastering_engineer"}, {"id": 3, "label": "Javier Moreno", "shape": "dot", "size": 18, "color": {"background": "#20c99733", "border": "#20c997", "highlight": {"background": "#20c99788", "border": "#20c997"}, "hover": {"background": "#20c99766", "border": "#20c997"}}, "borderWidth": 2, "borderWidthSelected": 3, "font": {"color": "#ffffff", "size": 14, "face": "Segoe UI, sans-serif", "bold": false, "italic": false, "align": "center"}, "margin": 10, "shadow": {"enabled": false, "color": "rgba(0,0,0,0.5)", "size": 10, "x": 5, "y": 5}, "title": "Javier Moreno — Lead Guitarist", "group": "musician"}, {"id": 4, "label": "Emma Watson-Brown", "shape": "dot", "size": 18, "color": {"background": "#20c99733", "border": "#20c997", "highlight": {"background": "#20c99788", "border": "#20c997"}, "hover": {"background": "#20c99766", "border": "#20c997"}}, "borderWidth": 2, "borderWidthSelected": 3, "font": {"color": "#ffffff", "size": 14, "face": "Segoe UI, sans-serif", "bold": false, "italic": false, "align": "center"}, "margin": 10, "shadow": {"enabled": false, "color": "rgba(0,0,0,0.5)", "size": 10, "x": 5, "y": 5}, "title": "Emma Watson-Brown — Violinist", "group": "musician"}, {"id": 5, "label": "Taro Suzuki", "shape": "dot", "size": 18, "color": {"background": "#20c99733", "border": "#20c997", "highlight": {"background": "#20c99788", "border": "#20c997"}, "hover": {"background": "#20c99766", "border": "#20c997"}}, "borderWidth": 2, "borderWidthSelected": 3, "font": {"color": "#ffffff", "size": 14, "face": "Segoe UI, sans-serif", "bold": false, "italic": false, "align": "center"}, "margin": 10, "shadow": {"enabled": false, "color": "rgba(0,0,0,0.5)", "size": 10, "x": 5, "y": 5}, "title": "Taro Suzuki — Drummer", "group": "musician"}, {"id": 6, "label": "Nina Petrova", "shape": "dot", "size": 18, "color": {"background": "#20c99733", "border": "#20c997", "highlight": {"background": "#20c99788", "border": "#20c997"}, "hover": {"background": "#20c99766", "border": "#20c997"}}, "borderWidth": 2, "borderWidthSelected": 3, "font": {"color": "#ffffff", "size": 14, "face": "Segoe UI, sans-serif", "bold": false, "italic": false, "align": "center"}, "margin": 10, "shadow": {"enabled": false, "color": "rgba(0,0,0,0.5)", "size": 10, "x": 5, "y": 5}, "title": "Nina Petrova — Vocal Arranger", "group": "musician"}];
+const VIS_EDGES   = [{"from": 1, "to": 0, "width": 1.5, "selectionWidth": 3.0, "color": {"color": "#adb5bd", "highlight": "#adb5bd", "hover": "#adb5bd", "inherit": false}, "arrows": {"to": {"enabled": true, "scaleFactor": 0.6, "type": "arrow"}}, "smooth": {"type": "cubicBezier", "roundness": 0.5}, "dashes": false, "shadow": false, "font": {"color": "#343434", "size": 12, "align": "middle"}, "id": 0}, {"from": 2, "to": 0, "width": 1.5, "selectionWidth": 3.0, "color": {"color": "#adb5bd", "highlight": "#adb5bd", "hover": "#adb5bd", "inherit": false}, "arrows": {"to": {"enabled": true, "scaleFactor": 0.6, "type": "arrow"}}, "smooth": {"type": "cubicBezier", "roundness": 0.5}, "dashes": false, "shadow": false, "font": {"color": "#343434", "size": 12, "align": "middle"}, "id": 1}, {"from": 3, "to": 1, "width": 1.5, "selectionWidth": 3.0, "color": {"color": "#adb5bd", "highlight": "#adb5bd", "hover": "#adb5bd", "inherit": false}, "arrows": {"to": {"enabled": true, "scaleFactor": 0.6, "type": "arrow"}}, "smooth": {"type": "cubicBezier", "roundness": 0.5}, "dashes": false, "shadow": false, "font": {"color": "#343434", "size": 12, "align": "middle"}, "id": 2}, {"from": 4, "to": 1, "width": 1.5, "selectionWidth": 3.0, "color": {"color": "#adb5bd", "highlight": "#adb5bd", "hover": "#adb5bd", "inherit": false}, "arrows": {"to": {"enabled": true, "scaleFactor": 0.6, "type": "arrow"}}, "smooth": {"type": "cubicBezier", "roundness": 0.5}, "dashes": false, "shadow": false, "font": {"color": "#343434", "size": 12, "align": "middle"}, "id": 3}, {"from": 5, "to": 2, "width": 1.5, "selectionWidth": 3.0, "color": {"color": "#adb5bd", "highlight": "#adb5bd", "hover": "#adb5bd", "inherit": false}, "arrows": {"to": {"enabled": true, "scaleFactor": 0.6, "type": "arrow"}}, "smooth": {"type": "cubicBezier", "roundness": 0.5}, "dashes": false, "shadow": false, "font": {"color": "#343434", "size": 12, "align": "middle"}, "id": 4}, {"from": 6, "to": 2, "width": 1.5, "selectionWidth": 3.0, "color": {"color": "#adb5bd", "highlight": "#adb5bd", "hover": "#adb5bd", "inherit": false}, "arrows": {"to": {"enabled": true, "scaleFactor": 0.6, "type": "arrow"}}, "smooth": {"type": "cubicBezier", "roundness": 0.5}, "dashes": false, "shadow": false, "font": {"color": "#343434", "size": 12, "align": "middle"}, "id": 5}];
+const LAYOUT_CFG  = {"physics": {"enabled": false, "solver": "forceAtlas2Based", "stabilization": {"iterations": 150}, "forceAtlas2Based": {"gravitationalConstant": -50, "springLength": 200, "springConstant": 0.05, "damping": 0.09}}, "interaction": {"hover": true, "multiselect": true, "navigationButtons": true, "keyboard": false, "zoomSpeed": 1.0, "zoomView": true, "minZoom": 0.1, "maxZoom": 10.0}, "layout": {"hierarchical": {"enabled": true, "direction": "UD", "sortMethod": "directed", "levelSeparation": 200, "nodeSpacing": 120}}};
+const HAS_EDGE_WIKI = true;
+
+// Base colour scheme set by the developer's Bootswatch choice.
+// User toggle overrides this at runtime.
+const BASE_SCHEME = "light";
+
+// ── Graph ─────────────────────────────────────────────────────────────────────
+const network = new vis.Network(
+  document.getElementById("nw-graph-container"),
+  { nodes: new vis.DataSet(VIS_NODES), edges: new vis.DataSet(VIS_EDGES) },
+  LAYOUT_CFG
+);
+
+let currentWikiData = null;   // holds whichever NODE_WIKI or EDGE_WIKI entry is open
+const bsModal = new bootstrap.Modal(document.getElementById("nw-wiki-modal"));
+
+// ── Click handling ────────────────────────────────────────────────────────────
+network.on("click", params => {
+  if (params.nodes.length > 0) {
+    openPanel(NODE_WIKI[params.nodes[0]]);
+  } else if (params.edges.length > 0 && HAS_EDGE_WIKI) {
+    openPanel(EDGE_WIKI[params.edges[0]]);
+  } else {
+    closePanel();
+  }
+});
+
+function openPanel(data) {
+  if (!data) return;
+  currentWikiData = data;
+
+  document.getElementById("nw-panel-title").textContent = data.label;
+  document.getElementById("nw-panel-body").innerHTML =
+    data.mini || "<em class='text-secondary'>No wiki content available.</em>";
+  document.getElementById("nw-btn-full-wiki").style.display =
+    data.full ? "" : "none";
+
+  document.getElementById("nw-wiki-panel").classList.add("open");
+  document.getElementById("nw-graph-container").classList.add("panel-open");
+}
+
+function closePanel() {
+  document.getElementById("nw-wiki-panel").classList.remove("open");
+  document.getElementById("nw-graph-container").classList.remove("panel-open");
+  currentWikiData = null;
+}
+
+function openFullWiki() {
+  if (!currentWikiData?.full) return;
+  document.getElementById("nw-wiki-modal-label").textContent = currentWikiData.label;
+  document.getElementById("nw-wiki-modal-body").innerHTML = currentWikiData.full;
+  bsModal.show();
+}
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") { bsModal.hide(); closePanel(); }
+});
+
+// ── Light / dark scheme toggle ────────────────────────────────────────────────
+//
+// Priority (highest wins):
+//   1. User's explicit choice — saved in localStorage
+//   2. OS preference          — prefers-color-scheme media query
+//   3. Base scheme            — derived from the Bootswatch theme
+//
+const SCHEME_KEY = "nw-scheme";
+const ICONS = { light: "bi-sun-fill", dark: "bi-moon-fill" };
+
+function osPrefers() {
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function activeScheme() {
+  return localStorage.getItem(SCHEME_KEY) || osPrefers();
+}
+
+function applyScheme(scheme) {
+  document.documentElement.setAttribute("data-bs-theme", scheme);
+  document.getElementById("nw-scheme-icon").className =
+    "bi " + (ICONS[scheme] || "bi-circle-half");
+}
+
+function toggleScheme() {
+  const next = activeScheme() === "light" ? "dark" : "light";
+  localStorage.setItem(SCHEME_KEY, next);
+  applyScheme(next);
+}
+
+// Apply on first load.
+applyScheme(activeScheme());
+
+// Keep in sync when OS setting changes (only when no explicit user choice).
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  if (!localStorage.getItem(SCHEME_KEY)) applyScheme(osPrefers());
+});
+</script>
+</body>
+</html>

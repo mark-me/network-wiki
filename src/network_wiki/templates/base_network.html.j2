@@ -23,6 +23,7 @@
   <link id="nw-bs-css" href="{{ css_url }}" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js"></script>
 
   <style>
     :root {
@@ -155,7 +156,12 @@ function openPanel(data) {
   if (!data) return;
   currentWikiData = data;
   document.getElementById("nw-panel-title").textContent = data.label;
-  document.getElementById("nw-panel-body").innerHTML = data.mini || "<em class='text-secondary'>No wiki content available.</em>";
+  const sanitizedMini = window.DOMPurify
+    ? window.DOMPurify.sanitize(data.mini || "<em class='text-secondary'>No wiki content available.</em>")
+    : (data.mini || "<em class='text-secondary'>No wiki content available.</em>");
+
+  document.getElementById("nw-panel-body").innerHTML = sanitizedMini;
+
   document.getElementById("nw-btn-full-wiki").style.display = data.full ? "" : "none";
   document.getElementById("nw-wiki-panel").classList.add("open");
   document.getElementById("nw-graph-container").classList.add("panel-open");
@@ -170,7 +176,15 @@ function closePanel() {
 function openFullWiki() {
   if (!currentWikiData?.full) return;
   document.getElementById("nw-wiki-modal-label").textContent = currentWikiData.label;
-  document.getElementById("nw-wiki-modal-body").innerHTML = currentWikiData.full;
+  const sanitizedFull = window.DOMPurify
+    ? window.DOMPurify.sanitize(currentWikiData.full, {
+        USE_PROFILES: { html: true },
+        ALLOWED_TAGS: ['b','i','u','strong','em','a','p','br','ul','ol','li','code','pre','h1','h2','h3','table','thead','tbody','tr','th','td'],
+        ADD_ATTR: ['target']
+      })
+    : currentWikiData.full;
+
+  document.getElementById("nw-wiki-modal-body").innerHTML = sanitizedFull;
   bsModal.show();
 }
 

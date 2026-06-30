@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import contextlib
 import importlib.resources as _pkg_res
-import json
 from pathlib import Path
-from typing import Callable, Optional
+from typing import Callable
 
 from jinja2 import Environment, FileSystemLoader
 from markupsafe import Markup
@@ -67,15 +66,15 @@ class GraphExporter:
         self,
         graph,
         title: str = "Graph Wiki",
-        layout: Optional[LayoutConfig] = None,
-        theme: Optional[ThemeConfig] = None,
-        default_node_style: Optional[NodeStyle] = None,
-        default_edge_style: Optional[EdgeStyle] = None,
-        node_style_callback: Optional[Callable] = None,
-        edge_style_callback: Optional[Callable] = None,
-        wiki_callback: Optional[Callable] = None,
-        edge_wiki_callback: Optional[Callable] = None,
-        wiki_renderer: Optional[WikiTemplateRenderer] = None,
+        layout: LayoutConfig | None = None,
+        theme: ThemeConfig | None = None,
+        default_node_style: NodeStyle | None = None,
+        default_edge_style: EdgeStyle | None = None,
+        node_style_callback: Callable | None = None,
+        edge_style_callback: Callable | None = None,
+        wiki_callback: Callable | None = None,
+        edge_wiki_callback: Callable | None = None,
+        wiki_renderer: WikiTemplateRenderer | None = None,
     ):
         self.graph = graph
         self.title = title
@@ -85,11 +84,11 @@ class GraphExporter:
         self.default_edge_style = default_edge_style or EdgeStyle()
 
         # Constructor args take priority over later setter calls.
-        self._node_style_cb: Optional[Callable] = node_style_callback
-        self._edge_style_cb: Optional[Callable] = edge_style_callback
-        self._wiki_cb: Optional[Callable] = wiki_callback
-        self._edge_wiki_cb: Optional[Callable] = edge_wiki_callback
-        self._wiki_renderer: Optional[WikiTemplateRenderer] = wiki_renderer
+        self._node_style_cb: Callable | None = node_style_callback
+        self._edge_style_cb: Callable | None = edge_style_callback
+        self._wiki_cb: Callable | None = wiki_callback
+        self._edge_wiki_cb: Callable | None = edge_wiki_callback
+        self._wiki_renderer: WikiTemplateRenderer | None = wiki_renderer
 
     # ------------------------------------------------------------------
     # Setter API (alternative to constructor arguments)
@@ -244,48 +243,25 @@ class GraphExporter:
         vis_nodes, node_wiki_map = self._build_nodes()
         vis_edges, edge_wiki_map = self._build_edges()
 
-        label_map: dict[int, str] = {n["id"]: n["label"] for n in vis_nodes}
+        node_wiki_js, edge_wiki_js = self._build_wiki_js(vis_nodes, node_wiki_map, edge_wiki_map)
 
-        node_wiki_js = {
-            vid: {
-                "label": label_map.get(vid, str(vid)),
-                "mini": wiki.mini_html or "",
-                "full": wiki.full_html,
-            }
-            for vid, wiki in node_wiki_map.items()
-        }
-        edge_wiki_js = {
-            eid: {
-                "label": f"Edge {eid}",
-                "mini": wiki.mini_html or "",
-                "full": wiki.full_html,
-            }
-            for eid, wiki in edge_wiki_map.items()
-        }
+        (
+            nodes_json_str,
+            edges_json_str,
+            node_wiki_json_str,
+            edge_wiki_json_str,
+            layout_cfg_str,
+        ) = self._serialize_payload(vis_nodes, vis_edges, node_wiki_js, edge_wiki_js)
+
+        self._maybe_validate_json(
+            nodes_json_str,
+            edges_json_str,
+            node_wiki_json_str,
+            edge_wiki_json_str,
+            layout_cfg_str,
+        )
 
         t = self.theme
-
-        # ✅ SERIALIZED WITH VALIDATION
-        nodes_json_str = serialize_json(vis_nodes)
-        edges_json_str = serialize_json(vis_edges)
-        node_wiki_json_str = serialize_json(node_wiki_js)
-        edge_wiki_json_str = serialize_json(edge_wiki_js)
-        layout_cfg_str = serialize_json(self.layout.to_vis())
-
-        # ✅ SECURITY CHECK - run validation on each blob
-        debug_mode = getattr(
-            self.layout, "_debug_validate_only", False
-        )  # For CI testing
-
-        if debug_mode:
-            for name, js_string in [
-                ("nodes", nodes_json_str),
-                ("edges", edges_json_str),
-                ("node_wiki", node_wiki_json_str),
-                ("edge_wiki", edge_wiki_json_str),
-                ("layout", layout_cfg_str),
-            ]:
-                validate_json_injection_safety(js_string)
 
         return dict(
             title=self.title,
@@ -311,6 +287,104 @@ class GraphExporter:
             max_zoom=self.layout.max_zoom,
         )
 
+    def _build_wiki_js(
+        self,
+        vis_nodes: list[dict],
+        node_wiki_map: dict[int, WikiContent],
+        edge_wiki_map: dict[int, WikiContent],
+    ) -> tuple[dict[int, dict], dict[int, dict]]:
+        """Build the JSON-serializable wiki payloads for nodes and edges.
+
+        Args:
+            vis_nodes: List of vis.js node dicts, each containing at least ``"id"`` and ``"label"``.
+            node_wiki_map: Mapping from vertex id to its :class:`WikiContent`.
+            edge_wiki_map: Mapping from edge id to its :class:`WikiContent`.
+
+        Returns:
+            Tuple ``(node_wiki_js, edge_wiki_js)`` ready for JSON serialization.
+        """
+        label_map: dict[int, str] = {n["id"]: n["label"] for n in vis_nodes}
+
+        node_wiki_js = {
+            vid: {
+                "label": label_map.get(vid, str(vid)),
+                "mini": wiki.mini_html or "",
+                "full": wiki.full_html,
+            }
+            for vid, wiki in node_wiki_map.items()
+        }
+        edge_wiki_js = {
+            eid: {
+                "label": f"Edge {eid}",
+                "mini": wiki.mini_html or "",
+                "full": wiki.full_html,
+            }
+            for eid, wiki in edge_wiki_map.items()
+        }
+        return node_wiki_js, edge_wiki_js
+
+    def _serialize_payload(
+        self,
+        vis_nodes: list[dict],
+        vis_edges: list[dict],
+        node_wiki_js: dict[int, dict],
+        edge_wiki_js: dict[int, dict],
+    ) -> tuple[str, str, str, str, str]:
+        """Serialize graph payloads and layout config to JSON strings.
+
+        Args:
+            vis_nodes: List of vis.js node dicts.
+            vis_edges: List of vis.js edge dicts.
+            node_wiki_js: Node wiki JSON payload.
+            edge_wiki_js: Edge wiki JSON payload.
+
+        Returns:
+            Tuple of JSON strings ``(nodes_json, edges_json, node_wiki_json, edge_wiki_json, layout_json)``.
+        """
+        nodes_json_str = serialize_json(vis_nodes)
+        edges_json_str = serialize_json(vis_edges)
+        node_wiki_json_str = serialize_json(node_wiki_js)
+        edge_wiki_json_str = serialize_json(edge_wiki_js)
+        layout_cfg_str = serialize_json(self.layout.to_vis())
+        return (
+            nodes_json_str,
+            edges_json_str,
+            node_wiki_json_str,
+            edge_wiki_json_str,
+            layout_cfg_str,
+        )
+
+    def _maybe_validate_json(
+        self,
+        nodes_json_str: str,
+        edges_json_str: str,
+        node_wiki_json_str: str,
+        edge_wiki_json_str: str,
+        layout_cfg_str: str,
+    ) -> None:
+        """Optionally validate JSON strings for injection safety in debug mode.
+
+        Args:
+            nodes_json_str [str]: Serialized node payload.
+            edges_json_str [str]: Serialized edge payload.
+            node_wiki_json_str [str]: Serialized node wiki payload.
+            edge_wiki_json_str [str]: Serialized edge wiki payload.
+            layout_cfg_str [str]: Serialized layout configuration.
+        """
+        debug_mode = getattr(self.layout, "_debug_validate_only", False)
+
+        if not debug_mode:
+            return
+
+        for name, js_string in [
+            ("nodes", nodes_json_str),
+            ("edges", edges_json_str),
+            ("node_wiki", node_wiki_json_str),
+            ("edge_wiki", edge_wiki_json_str),
+            ("layout", layout_cfg_str),
+        ]:
+            validate_json_injection_safety(js_string)
+
     def render_html(self, template: str = "page.html.j2") -> str:
         """Render the graph to an HTML string without writing to disk.
 
@@ -318,7 +392,7 @@ class GraphExporter:
         files) and :class:`~network_wiki.flask_view.GraphView` (Flask).
 
         Args:
-            template: Name of the Jinja2 template to use.  Must exist in the
+            template [str]: Name of the Jinja2 template to use.  Must exist in the
                 package ``templates/`` directory.
 
         Returns:
@@ -337,7 +411,7 @@ class GraphExporter:
         """Render the HTML page and write it to *path*.
 
         Args:
-            path: Destination file path.  Created or overwritten; parent
+            path [str | Path]: Destination file path.  Created or overwritten; parent
                 directories must exist.
 
         Returns:

@@ -63,10 +63,9 @@ from markupsafe import Markup
 from .json_safe import serialize_json
 
 from .exporter import GraphExporter
-from .layout import ThemeConfig
 
 try:
-    from flask import Blueprint, Response, jsonify, redirect, url_for
+    from flask import Blueprint, Response, jsonify, redirect
     _FLASK_AVAILABLE = True
 except ImportError:
     _FLASK_AVAILABLE = False

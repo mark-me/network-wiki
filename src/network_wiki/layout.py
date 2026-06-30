@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Literal
 
 
@@ -99,27 +99,27 @@ class LayoutConfig:
     """Physics and layout configuration passed directly to vis.js.
 
     Args:
-        physics_enabled: Enable or disable the physics simulation.
-        solver: Physics solver. One of ``"barnesHut"``, ``"forceAtlas2Based"``,
+        physics_enabled [bool]: Enable or disable the physics simulation.
+        solver [str]: Physics solver. One of ``"barnesHut"``, ``"forceAtlas2Based"``,
             ``"repulsion"``, or ``"hierarchicalRepulsion"``.
-        stabilization_iterations: Number of stabilization iterations on load.
-        gravity: Gravitational constant (negative = repulsive).
-        spring_length: Preferred edge length in pixels.
-        spring_constant: Edge spring stiffness (0–1).
-        damping: Velocity damping factor (0–1).
-        hierarchical: Enable hierarchical layout (disables physics).
-        hierarchical_direction: Layout direction: ``"UD"``, ``"DU"``,
+        stabilization_iterations [int]: Number of stabilization iterations on load.
+        gravity [float]: Gravitational constant (negative = repulsive).
+        spring_length [int]: Preferred edge length in pixels.
+        spring_constant [float]: Edge spring stiffness (0–1).
+        damping [float]: Velocity damping factor (0–1).
+        hierarchical [bool]: Enable hierarchical layout (disables physics).
+        hierarchical_direction [str]: Layout direction: ``"UD"``, ``"DU"``,
             ``"LR"``, or ``"RL"``.
-        hierarchical_sort_method: Node ordering: ``"directed"`` or ``"hubsize"``.
-        hierarchical_level_separation: Vertical distance between levels in pixels.
-        hierarchical_node_spacing: Horizontal distance between nodes in pixels.
-        hover: Highlight nodes and edges on mouse-over.
-        multiselect: Allow selecting multiple nodes with a drag-box.
-        navigation_buttons: Show zoom/fit navigation buttons.
-        keyboard_navigation: Enable keyboard-driven navigation.
-        zoom_speed: Scroll-wheel zoom sensitivity.
-        min_zoom: Minimum zoom scale factor.
-        max_zoom: Maximum zoom scale factor.
+        hierarchical_sort_method [str]: Node ordering: ``"directed"`` or ``"hubsize"``.
+        hierarchical_level_separation [int]: Vertical distance between levels in pixels.
+        hierarchical_node_spacing [int]: Horizontal distance between nodes in pixels.
+        hover [bool]: Highlight nodes and edges on mouse-over.
+        multiselect [bool]: Allow selecting multiple nodes with a drag-box.
+        navigation_buttons [bool]: Show zoom/fit navigation buttons.
+        keyboard_navigation [bool]: Enable keyboard-driven navigation.
+        zoom_speed [float]: Scroll-wheel zoom sensitivity.
+        min_zoom [float]: Minimum zoom scale factor.
+        max_zoom [float]: Maximum zoom scale factor.
     """
 
     # Physics
@@ -205,7 +205,7 @@ class ThemeConfig:
     to the OS setting (``prefers-color-scheme``) on first load.
 
     Args:
-        bootswatch_theme: Optional Bootswatch 5 theme name.  ``None`` uses
+        bootswatch_theme [str | None]: Optional Bootswatch 5 theme name.  ``None`` uses
             plain Bootstrap.
 
             Light themes: ``cerulean``, ``cosmo``, ``flatly``, ``journal``,
@@ -216,13 +216,13 @@ class ThemeConfig:
             Dark themes: ``cyborg``, ``darkly``, ``slate``, ``solar``,
             ``superhero``, ``vapor``.
 
-        accent_color: CSS colour string used as the primary accent throughout
+        accent_color [str]: CSS colour string used as the primary accent throughout
             the UI (toolbar highlight, panel title, wiki headings).  Defaults
             to Bootstrap primary blue.
 
-        panel_width_px: Width of the wiki side-panel in pixels.
+        panel_width_px [int]: Width of the wiki side-panel in pixels.
 
-        lang: Value for the HTML ``lang`` attribute (e.g. ``"en"``, ``"nl"``).
+        lang [str]: Value for the HTML ``lang`` attribute (e.g. ``"en"``, ``"nl"``).
 
     Example::
 

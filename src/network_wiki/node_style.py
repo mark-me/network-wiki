@@ -13,12 +13,12 @@ class NodeColor:
     All values are CSS colour strings (hex, rgb, or named colours).
 
     Args:
-        background: Fill colour of the node body.
-        border: Colour of the node border.
-        highlight_background: Fill colour when the node is selected.
-        highlight_border: Border colour when the node is selected.
-        hover_background: Fill colour on mouse-over.
-        hover_border: Border colour on mouse-over.
+        background [str]: Fill colour of the node body.
+        border [str]: Colour of the node border.
+        highlight_background [str]: Fill colour when the node is selected.
+        highlight_border [str]: Border colour when the node is selected.
+        hover_background [str]: Fill colour on mouse-over.
+        hover_border [str]: Border colour on mouse-over.
     """
 
     background: str = "#97C2FC"
@@ -51,7 +51,7 @@ class NodeColor:
         automatically by appending two-digit hex opacity suffixes.
 
         Args:
-            hex_color: A CSS hex colour string, e.g. ``"#e94560"`` or ``"e94560"``.
+            hex_color [str]: A CSS hex colour string, e.g. ``"#e94560"`` or ``"e94560"``.
 
         Returns:
             A :class:`NodeColor` with border, background, hover, and highlight
@@ -59,11 +59,11 @@ class NodeColor:
         """
         base = "#" + hex_color.strip("#")
         return cls(
-            background=base + "33",
+            background=f"{base}33",
             border=base,
-            highlight_background=base + "88",
+            highlight_background=f"{base}88",
             highlight_border=base,
-            hover_background=base + "66",
+            hover_background=f"{base}66",
             hover_border=base,
         )
 
@@ -73,12 +73,12 @@ class NodeFont:
     """Font settings for a node label.
 
     Args:
-        color: CSS colour of the label text.
-        size: Font size in points.
-        face: CSS font-family string.
-        bold: Render label in bold.
-        italic: Render label in italic.
-        align: Horizontal alignment: ``"center"``, ``"left"``, or ``"right"``.
+        color [str]: CSS colour of the label text.
+        size [int]: Font size in points.
+        face [str]: CSS font-family string.
+        bold [bool]: Render label in bold.
+        italic [bool]: Render label in italic.
+        align [str]: Horizontal alignment: ``"center"``, ``"left"``, or ``"right"``.
     """
 
     color: str = "#343434"
@@ -109,33 +109,33 @@ class NodeStyle:
             ``"box"``, ``"text"``, ``"image"``, ``"circularImage"``,
             ``"diamond"``, ``"dot"``, ``"star"``, ``"triangle"``,
             ``"triangleDown"``, ``"hexagon"``, ``"square"``, ``"icon"``.
-        size: Radius in pixels for round shapes; half-width for box shapes.
-        color: A hex colour string (alpha variants computed automatically)
+        size [int]: Radius in pixels for round shapes; half-width for box shapes.
+        color [NodeColor | str]: A hex colour string (alpha variants computed automatically)
             or a :class:`NodeColor` for full control.
-        border_width: Border line width in pixels.
-        border_width_selected: Border width when the node is selected.
-        border_dashes: Render border as a dashed line.
-        label: Override label text.  ``None`` uses the vertex ``"name"`` attribute.
-        font: Font settings for the label.
-        show_label: Set to ``False`` to hide the label entirely.
-        tooltip: HTML string shown on mouse-over (vis.js ``title``).
-        shadow: Enable drop shadow.
-        shadow_color: CSS colour of the shadow.
-        shadow_size: Shadow blur radius in pixels.
-        shadow_x: Shadow horizontal offset in pixels.
-        shadow_y: Shadow vertical offset in pixels.
-        value: When set, node size is scaled between *scaling_min* and
+        border_width [int]: Border line width in pixels.
+        border_width_selected [int]: Border width when the node is selected.
+        border_dashes [bool]: Render border as a dashed line.
+        label [str | None]: Override label text.  ``None`` uses the vertex ``"name"`` attribute.
+        font [NodeFont]: Font settings for the label.
+        show_label [bool]: Set to ``False`` to hide the label entirely.
+        tooltip [str | None]: HTML string shown on mouse-over (vis.js ``title``).
+        shadow [bool]: Enable drop shadow.
+        shadow_color [str]: CSS colour of the shadow.
+        shadow_size [int]: Shadow blur radius in pixels.
+        shadow_x [int]: Shadow horizontal offset in pixels.
+        shadow_y [int]: Shadow vertical offset in pixels.
+        value [float | None]: When set, node size is scaled between *scaling_min* and
             *scaling_max* based on this value relative to other nodes.
-        scaling_min: Minimum size in pixels when value-based scaling is active.
-        scaling_max: Maximum size in pixels when value-based scaling is active.
-        margin: Inner padding for ``"box"`` shape nodes.
-        image: URL or data-URI for ``"image"`` and ``"circularImage"`` shapes.
-        x: Fixed horizontal canvas position in pixels.
-        y: Fixed vertical canvas position in pixels.
-        fixed_x: Prevent physics from moving the node horizontally.
-        fixed_y: Prevent physics from moving the node vertically.
-        group: vis.js group name for shared group-level styling.
-        extra: Any additional vis.js node properties not listed above.
+        scaling_min [int]: Minimum size in pixels when value-based scaling is active.
+        scaling_max [int]: Maximum size in pixels when value-based scaling is active.
+        margin [int]: Inner padding for ``"box"`` shape nodes.
+        image [str]: URL or data-URI for ``"image"`` and ``"circularImage"`` shapes.
+        x [int]: Fixed horizontal canvas position in pixels.
+        y [int]: Fixed vertical canvas position in pixels.
+        fixed_x [bool]: Prevent physics from moving the node horizontally.
+        fixed_y [bool]: Prevent physics from moving the node vertically.
+        group [str | None]: vis.js group name for shared group-level styling.
+        extra [dict]: Any additional vis.js node properties not listed above.
             These are merged last and override earlier values.
     """
 
@@ -176,17 +176,32 @@ class NodeStyle:
         Returns:
             A dict suitable for inclusion in the vis.js ``DataSet`` of nodes.
         """
+        label = self._resolve_label(label_fallback)
+        col = self._resolve_color()
+
+        d: dict[str, Any] = self._base_vis_dict(node_id, label, col)
+        self._apply_optional_fields(d)
+        d |= self.extra
+        return d
+
+    def _resolve_label(self, label_fallback: str) -> str:
+        """Return the label text, honoring show_label and explicit label override."""
         label = self.label if self.label is not None else label_fallback
         if not self.show_label:
-            label = ""
+            return ""
+        return label
 
-        col = (
+    def _resolve_color(self) -> dict:
+        """Return the vis.js colour configuration for this node."""
+        return (
             NodeColor.from_hex(self.color).to_vis()
             if isinstance(self.color, str)
             else self.color.to_vis()
         )
 
-        d: dict[str, Any] = {
+    def _base_vis_dict(self, node_id: int, label: str, col: dict) -> dict:
+        """Build the base vis.js node dict without optional fields."""
+        return {
             "id": node_id,
             "label": label,
             "shape": self.shape,
@@ -205,6 +220,8 @@ class NodeStyle:
             },
         }
 
+    def _apply_optional_fields(self, d: dict) -> None:
+        """Mutate *d* in-place with optional vis.js properties."""
         if self.border_dashes:
             d["shapeProperties"] = {"borderDashes": [5, 5]}
         if self.tooltip:
@@ -222,6 +239,3 @@ class NodeStyle:
             d["fixed"] = {"x": self.fixed_x, "y": self.fixed_y}
         if self.group:
             d["group"] = self.group
-
-        d |= self.extra
-        return d

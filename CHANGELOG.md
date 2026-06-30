@@ -7,9 +7,10 @@ This project uses [semantic versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.5.0] – 2024-06-30
 
 ### Fixed
+
 - **Light/dark toggle did nothing when a Bootswatch theme was active.**
   Bootswatch stylesheets are baked for a single fixed appearance and ignore
   Bootstrap's `data-bs-theme` attribute, so the toggle button changed the
@@ -20,6 +21,7 @@ This project uses [semantic versioning](https://semver.org/).
   still works there as expected.
 
 ### Added
+
 - `examples/example_wiki_content.py` — a new example demonstrating every wiki
   mechanism on one graph: per-type template files, per-type inline templates,
   the automatic fallback for untemplated types, and an edge wiki callback.
@@ -28,9 +30,10 @@ This project uses [semantic versioning](https://semver.org/).
 
 ---
 
-## [0.4.0] – 2024-07-01
+## [0.4.0] – 2024-06-29
 
 ### Added
+
 - **Edge wiki support** – clicking an edge now opens the wiki side-panel, just
   like clicking a node.  Supply an `edge_wiki_callback` or let the exporter
   auto-generate content from edge attributes.
@@ -41,6 +44,7 @@ This project uses [semantic versioning](https://semver.org/).
 - **`CHANGELOG.md`** (this file).
 
 ### Changed
+
 - `ThemeConfig` replaces `accent_color` + `default_color_scheme` with
   `bootswatch_theme` (developer-chosen) while the user controls light/dark via
   a toolbar toggle persisted in `localStorage`.
@@ -56,6 +60,7 @@ This project uses [semantic versioning](https://semver.org/).
   `_vertex_label` helper instead of duplicating the label-resolution logic.
 
 ### Fixed
+
 - O(n²) label lookup in `export()` replaced by an O(n) dict built from
   `vis_nodes`.
 - GitHub URL placeholder (`YOUR_USERNAME`) replaced with `mark-me` throughout
@@ -66,6 +71,7 @@ This project uses [semantic versioning](https://semver.org/).
 ## [0.3.0] – 2024-06-15
 
 ### Added
+
 - Bootswatch 5 theme support via `ThemeConfig(bootswatch_theme=...)`.
 - Validation of theme name in `ThemeConfig.__post_init__` (raises `ValueError`
   on unknown names).
@@ -74,6 +80,7 @@ This project uses [semantic versioning](https://semver.org/).
   automatic OS preference detection (`prefers-color-scheme`).
 
 ### Changed
+
 - Codebase split from a single `exporter.py` into `node_style`, `edge_style`,
   `wiki`, `layout`, and `exporter` modules.
 - `page.html.j2` introduced as a Jinja2 template for the full page structure.
@@ -84,6 +91,7 @@ This project uses [semantic versioning](https://semver.org/).
 ## [0.2.0] – 2024-05-20
 
 ### Added
+
 - Bootstrap 5 UI with light/dark theming.
 - `WikiTemplateRenderer` with Jinja2 template support (file-based and inline).
 - Template resolution priority: per-type file → per-type inline → default file
@@ -99,6 +107,7 @@ This project uses [semantic versioning](https://semver.org/).
 ## [0.1.0] – 2024-04-10
 
 ### Added
+
 - Initial release.
 - `GraphExporter` converting `igraph.Graph` to a standalone HTML page.
 - vis.js graph with clickable nodes opening a side-panel wiki.

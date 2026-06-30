@@ -1,8 +1,8 @@
-# Templates
+# Wiki Templates
 
 Advanced wiki content customization beyond auto-generated attribute tables.
 
-## Template Resolution Order
+## 🪜 Template Resolution Order
 
 When rendering node wiki content:
 
@@ -14,7 +14,7 @@ When rendering node wiki content:
 
 Same priority order applies to mini-template variants.
 
-## Template Files Location
+## 📁 Template Files Location
 
 Place `.html.j2` files in your specified `template_dir`:
 
@@ -27,7 +27,7 @@ project/
 └── script.py
 ```
 
-## Built-in Fallbacks
+## 🛟 Built-in Fallbacks
 
 network-wiki bundles default templates accessible even without custom files. These render:
 

@@ -1,6 +1,6 @@
 # Package Layout
 
-## Source Structure
+## 📁 Source Structure
 
 ```text
 network_wiki/
@@ -18,7 +18,7 @@ network_wiki/
     └── full_default.html.j2   # Bundled full-modal fallback
 ```
 
-## Import Paths
+## 🧭 Import Paths
 
 Public symbols exposed in `__all__`:
 
@@ -34,6 +34,6 @@ from network_wiki import (
 
 `GraphView` requires Flask to be installed (`pip install network-wiki[flask]`); importing it without Flask available raises `ImportError` with an explanation.
 
-## Version Tracking
+## 🏷️ Version Tracking
 
 Current version tracked in `__version__` within `network_wiki/__init__.py`, and mirrored in `pyproject.toml`. Both are bumped together on release — see [Contributing](contributing.md).

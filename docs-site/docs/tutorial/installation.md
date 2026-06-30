@@ -1,13 +1,13 @@
 # Installation
 
-## Requirements
+## 📝 Requirements
 
 * Python 3.11 or higher
 * [`igraph`](https://igraph.org/python/) for graph operations
 * [`jinja2`](https://jinja.palletsprojects.com/) for wiki templating (installed automatically as a core dependency)
 * [`flask`](https://flask.palletsprojects.com/) — only needed for the Flask integration, see [`GraphView`](../tutorial/flask.md)
 
-## Install
+## 📦 Install
 
 === "pip"
 
@@ -35,7 +35,7 @@
     uv add git+https://github.com/mark-me/network-wiki.git
     ```
 
-## Verify the Install
+## ✅ Verify the Install
 
 ```python
 import network_wiki

@@ -1,8 +1,8 @@
-# Templates
+# Wiki Templates
 
 Customize wiki content using Jinja2 templates.
 
-## Basic Setup
+## 🏗️ Basic Setup
 
 ```python
 from network_wiki import GraphExporter, WikiTemplateRenderer
@@ -19,11 +19,11 @@ exporter.export("templated.html")
 
 `wiki_renderer` can also be set after construction with `exporter.set_wiki_renderer(renderer)`.
 
-## Template Context Variables
+## 🧩 Template Context Variables
 
 Each template receives:
 
-| Variable     | Type        | Description                            |
+| Variable     | Type        | Description                             |
 | ------------ | ----------- | --------------------------------------- |
 | `v`          | `Vertex`    | The `igraph.Vertex` object              |
 | `attrs`      | `dict`      | All vertex attributes `{name: value}`   |
@@ -35,7 +35,7 @@ Each template receives:
 | `graph`      | `Graph`     | Full `igraph.Graph` object              |
 | `type_value` | `str`       | Value of the configured type attribute, or `""` |
 
-## Per-Type Templates
+## 🗂️ Per-Type Templates
 
 Dispatch different templates by node type using inline strings:
 
@@ -78,7 +78,7 @@ renderer = WikiTemplateRenderer(
 
 Available types are determined by the values present in your chosen `type_attr` column. Types without a matching template fall through to the [resolution chain](../user-guide/templates.md#template-resolution-order) and ultimately to the bundled default template, which renders all attributes generically.
 
-## Edge Wikis
+## 🌊 Edge Wikis
 
 Edges get the same side-panel / full-modal treatment, but through a plain Python callback rather than a template renderer:
 
@@ -94,6 +94,6 @@ def edge_wiki(e) -> WikiContent:
 exporter = GraphExporter(g, edge_wiki_callback=edge_wiki)
 ```
 
-## A Complete, Runnable Example
+## 🚀 A Complete, Runnable Example
 
-See [`examples/example_wiki_content.py`](https://github.com/mark-me/network-wiki/blob/main/examples/example_wiki_content.py) in the repository for a full org-chart graph that demonstrates every wiki mechanism side by side: per-type template files, per-type inline templates, the automatic fallback for untemplated types, and an edge wiki callback.
+See [`examples/wiki_org_chart.py`](https://github.com/mark-me/network-wiki/blob/main/examples/wiki_org_chart.py) in the repository for a full org-chart graph that demonstrates every wiki mechanism side by side: per-type template files, per-type inline templates, the automatic fallback for untemplated types, and an edge wiki callback.

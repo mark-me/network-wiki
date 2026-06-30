@@ -2,7 +2,7 @@
 
 Thank you for wanting to contribute! Here's how to get started.
 
-## Setup
+## 💻 Setup
 
 === "pip"
 
@@ -22,7 +22,7 @@ Thank you for wanting to contribute! Here's how to get started.
     uv sync --extra dev --extra flask
     ```
 
-## Running Tests
+## 🧪 Running Tests
 
 === "pip"
 

@@ -2,7 +2,7 @@
 
 Welcome to the network-wiki tutorial. This guide walks you through creating interactive HTML graph pages with embedded wikis.
 
-## What You'll Learn
+## 🎓 What You'll Learn
 
 1. Installing network-wiki and prerequisites
 2. Creating your first exported graph
@@ -10,7 +10,7 @@ Welcome to the network-wiki tutorial. This guide walks you through creating inte
 4. Building custom wiki content with Jinja2 templates
 5. Deploying multiple graphs with Flask
 
-## Prerequisites
+## 📝 Prerequisites
 
 - Python 3.11+
 - Basic familiarity with `igraph` for graph construction

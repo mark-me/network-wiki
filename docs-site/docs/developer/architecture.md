@@ -1,6 +1,6 @@
 # Architecture
 
-## Component Responsibilities
+## 🧩 Component Responsibilities
 
 | Component | Responsibility |
 | --------- | -------------- |
@@ -11,7 +11,7 @@
 | `LayoutConfig` | Vis.js physics/layout configuration |
 | `ThemeConfig` | Bootstrap/Bootswatch theme metadata |
 
-## Data Flow — Static Export
+## ➡️ Data Flow — Static Export
 
 ```mermaid
 flowchart TD
@@ -33,7 +33,7 @@ flowchart TD
 
 `_build_template_vars()` is the single place that turns Python graph data into the dict consumed by Jinja2 — both `export()` and `GraphView` go through it, so the two serving modes never duplicate the data-assembly logic.
 
-## Data Flow — Flask Serving
+## 🌐 Data Flow — Flask Serving
 
 ```mermaid
 flowchart TD
@@ -51,7 +51,7 @@ flowchart TD
 
 The Flask shell (`page_flask.html.j2`) differs from the static page (`page.html.j2`) in one key way: it doesn't inline graph data as JavaScript constants. Instead it fetches `/graph/<name>/data` on load, which lets `GraphView` swap graphs without a full page reload and lets factory-based graphs (see [Flask Integration](../tutorial/flask.md#dynamic-graphs)) rebuild fresh data on every request.
 
-## Extension Points
+## 🔌 Extension Points
 
 - **Style callbacks** — `node_style_callback` / `edge_style_callback` for per-element customization
 - **Wiki callbacks/renderer** — `wiki_callback`, `edge_wiki_callback`, or `WikiTemplateRenderer` for custom content

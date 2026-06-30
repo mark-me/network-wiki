@@ -2,7 +2,7 @@
 
 Fine-tune physics, layout, and interaction behavior.
 
-## LayoutConfig
+## ⚙️ LayoutConfig
 
 Physics and interaction settings passed directly to vis.js.
 
@@ -33,14 +33,14 @@ class LayoutConfig:
     max_zoom: float = 10.0
 ```
 
-## Physics Solver Options
+## 🧲 Physics Solver Options
 
 * barnesHut
 * forceAtlas2Based (recommended)
 * repulsion
 * hierarchicalRepulsion
 
-## Hierarchical Direction Options
+## 🌳 Hierarchical Direction Options
 
 * UD — Up-down
 * DU — Down-up

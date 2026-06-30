@@ -1,6 +1,6 @@
 # Rendering Pipeline
 
-## Step 1: Node Construction
+## 1️⃣ Node Construction
 
 `_build_nodes()` iterates over `graph.vs`:
 
@@ -10,7 +10,7 @@
 
 Returns `(vis_nodes_list, node_wiki_map)`.
 
-## Step 2: Edge Construction
+## 2️⃣ Edge Construction
 
 `_build_edges()` iterates over `graph.es`:
 
@@ -20,7 +20,7 @@ Returns `(vis_nodes_list, node_wiki_map)`.
 
 Returns `(vis_edges_list, edge_wiki_map)`.
 
-## Step 3: Template Assembly
+## 3️⃣ Template Assembly
 
 `_build_template_vars()` — the single point where Python data becomes the Jinja2 context, shared by both static export and Flask serving:
 
@@ -31,7 +31,7 @@ Returns `(vis_edges_list, edge_wiki_map)`.
 
 Returns a single dict suitable for `Template.render(**vars)`.
 
-## Step 4: Template Rendering
+## 4️⃣ Template Rendering
 
 `render_html(template="page.html.j2")`:
 
@@ -42,7 +42,7 @@ Returns a single dict suitable for `Template.render(**vars)`.
 
 `export(path)` calls `render_html()` and writes the result with `Path.write_text()`.
 
-## Flask Serving Differs After Step 4
+## 🤔 Flask Serving Differs After Step 4
 
 `GraphView` does **not** call `export()`. Instead:
 

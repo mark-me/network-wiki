@@ -2,7 +2,7 @@
 
 This section provides detailed API references and configuration options.
 
-## Available Guides
+## 📖 Available Guides
 
 - **[Graph Exporter](exporter.md)** — Core API for exporting static HTML
 - **[Node and Edge Styling](styling.md)** — `NodeStyle` and `EdgeStyle` reference

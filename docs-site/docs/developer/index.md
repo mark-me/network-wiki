@@ -2,7 +2,7 @@
 
 Contribute to network-wiki development or extend its internals.
 
-## Contents
+## 📄 Contents
 
 - **[Architecture](architecture.md)** — Component diagram and responsibilities
 - **[Rendering Pipeline](rendering-pipeline.md)** — Step-by-step export flow

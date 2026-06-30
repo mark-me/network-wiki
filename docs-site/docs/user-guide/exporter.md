@@ -2,7 +2,7 @@
 
 The `GraphExporter` class converts an `igraph.Graph` into a standalone interactive HTML page.
 
-## Constructor
+## 🏗️ Constructor
 
 ```python
 GraphExporter(
@@ -20,7 +20,7 @@ GraphExporter(
 )
 ```
 
-## Parameters
+## 📝 Parameters
 
 | Parameter | Type | Description |
 | --------- | ---- | ----------- |
@@ -38,14 +38,14 @@ GraphExporter(
 
 All callback parameters can also be set after construction with the matching `set_*` method (`set_node_style_callback`, `set_edge_style_callback`, `set_wiki_callback`, `set_edge_wiki_callback`, `set_wiki_renderer`) — useful when the callback depends on data resolved after the exporter is created.
 
-## Output Methods
+## 📄 Output Methods
 
 | Method | Returns | Use case |
 | ------ | ------- | -------- |
 | `export(path)` | `pathlib.Path` | Write a standalone HTML file to disk |
 | `render_html()` | `str` | Render the page to a string without writing to disk — used internally by `GraphView` for Flask serving |
 
-## Example Usage
+## 💡 Example Usage
 
 ```python
 from network_wiki import GraphExporter, NodeStyle, ThemeConfig, WikiTemplateRenderer
@@ -60,6 +60,6 @@ exporter = GraphExporter(
 exporter.export("output.html")
 ```
 
-## Serving Dynamically with Flask
+## 🌐 Serving Dynamically with Flask
 
 `GraphExporter` instances integrate with `GraphView` for live HTTP serving — see [Flask Integration](../tutorial/flask.md).

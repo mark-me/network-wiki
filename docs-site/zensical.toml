@@ -8,29 +8,29 @@ nav = [
   { "Home" = "index.md" },
 
   { "Tutorial" = [
-    { "Introduction" = "tutorial/index.md" },
-    { "Installation" = "tutorial/installation.md" },
-    { "Your first graph" = "tutorial/first-graph.md" },
-    { "Templates" = "tutorial/templates.md" },
-    { "Flask integration" = "tutorial/flask.md" },
+    { "👋 Introduction" = "tutorial/index.md" },
+    { "💻 Installation" = "tutorial/installation.md" },
+    { "🏅 Your first graph" = "tutorial/first-graph.md" },
+    { "📚 Wiki Templates" = "tutorial/templates.md" },
+    { "🌐 Flask integration" = "tutorial/flask.md" },
   ]},
 
   { "User guide" = [
-    { "Overview" = "user-guide/index.md" },
-    { "Graph exporter" = "user-guide/exporter.md" },
-    { "Node and edge styling" = "user-guide/styling.md" },
-    { "Templates" = "user-guide/templates.md" },
-    { "Themes" = "user-guide/themes.md" },
-    { "Configuration" = "user-guide/configuration.md" },
-    { "FAQ" = "user-guide/faq.md" },
+    { "🗺️ Overview" = "user-guide/index.md" },
+    { "🚛 Graph exporter" = "user-guide/exporter.md" },
+    { "🖌️ Node and edge styling" = "user-guide/styling.md" },
+    { "📚 Wiki Templates" = "user-guide/templates.md" },
+    { "🎨 Themes" = "user-guide/themes.md" },
+    { "⚙️ Configuration" = "user-guide/configuration.md" },
+    { "❓ FAQ" = "user-guide/faq.md" },
   ]},
 
   { "Developer guide" = [
-    { "Overview" = "developer/index.md" },
-    { "Architecture" = "developer/architecture.md" },
-    { "Rendering pipeline" = "developer/rendering-pipeline.md" },
-    { "Package layout" = "developer/package-layout.md" },
-    { "Contributing" = "developer/contributing.md" },
+    { "🗺️ Overview" = "developer/index.md" },
+    { "🏛️ Architecture" = "developer/architecture.md" },
+    { "➡️ Rendering pipeline" = "developer/rendering-pipeline.md" },
+    { "📦 Package layout" = "developer/package-layout.md" },
+    { "🤝 Contributing" = "developer/contributing.md" },
   ]},
 ]
 

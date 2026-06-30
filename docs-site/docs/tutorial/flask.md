@@ -2,7 +2,7 @@
 
 Serve one or more dynamic graphs with a single Flask app, using `GraphView` — a self-contained Blueprint built on top of `GraphExporter`.
 
-## Single Graph
+## ☝️ Single Graph
 
 ```python
 from flask import Flask
@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
 Visit [http://localhost:5000/graph/](http://localhost:5000/graph/). Internally, passing an exporter directly to `GraphView(...)` registers it under the name `"default"`, so `/graph/` redirects to `/graph/default/`. The data is served from `/graph/default/data`.
 
-## Multiple Graphs with Picker
+## 🔢 Multiple Graphs with Picker
 
 Register named graphs explicitly with `.add(name, exporter, title=...)`:
 
@@ -49,7 +49,7 @@ URLs:
 
 When more than one graph is registered, every page shows a dropdown that lets the user switch graphs without a full page reload.
 
-## Dynamic Graphs
+## 💫 Dynamic Graphs
 
 Pass a zero-argument callable instead of an exporter to rebuild the graph fresh on every request — useful for data from a database or external API:
 
@@ -65,7 +65,7 @@ view.register(app)
 
 The factory is called on every request to `/live/live/` and `/live/live/data` — there is no caching, so each page load (and each picker switch) reflects current data.
 
-## How It Works
+## 🤔 How It Works
 
 `GraphView` does not call `GraphExporter.export()`. Instead:
 

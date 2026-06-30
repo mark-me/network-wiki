@@ -2,7 +2,7 @@
 
 Customize the visual appearance of generated pages.
 
-## Bootswatch Theme Selection
+## 🎭 Bootswatch Theme Selection
 
 Choose from 25 Bootswatch 5 themes:
 
@@ -32,7 +32,7 @@ print(BOOTSWATCH_THEMES)
 
 **Dark themes (6):** cyborg, darkly, slate, solar, superhero, vapor
 
-## Accent Color Control
+## 🎨 Accent Color Control
 
 Override the primary UI accent color:
 
@@ -46,7 +46,7 @@ Used for:
 * Panel titles
 * Wiki headings
 
-## Dark/Light Mode Toggle
+## 🌗 Dark/Light Mode Toggle
 
 When no Bootswatch theme is set (`ThemeConfig()`), end-users see a toggle button in the toolbar that switches between light and dark mode. Their preference persists in `localStorage` and defaults to the OS setting (`prefers-color-scheme`) on first load.
 

@@ -1,6 +1,6 @@
 # Your First Graph
 
-## Basic Export
+## 📤 Basic Export
 
 Start with a simple directed graph:
 
@@ -19,7 +19,7 @@ exporter.export("first_graph.html")
 
 Open `first_graph.html` in a browser. You'll see three connected nodes; clicking any node opens a side panel.
 
-## Adding Attributes
+## ➕ Adding Attributes
 
 Vertex attributes become wiki content automatically — no extra configuration needed:
 
@@ -30,7 +30,7 @@ g.vs["description"] = ["Begin", "Middle step", "Finish"]
 
 Click any node in the exported HTML to see its attributes listed in the side panel. This auto-generated wiki works for any attribute names — see [Templates](templates.md) once you want full control over the layout.
 
-## Choosing a Theme
+## 🎨 Choosing a Theme
 
 Select from 25 Bootswatch 5 themes:
 
@@ -51,7 +51,7 @@ exporter.export("themed.html")
 
 See [Themes](../user-guide/themes.md) for the full list and how the light/dark toggle interacts with Bootswatch themes.
 
-## Styling Nodes and Edges
+## 🖌️ Styling Nodes and Edges
 
 Pass callbacks to control node and edge appearance individually:
 
@@ -72,7 +72,7 @@ exporter.export("styled.html")
 
 Callbacks can also be set after construction with `exporter.set_node_style_callback(...)` and `exporter.set_edge_style_callback(...)`.
 
-## Next Steps
+## ⏩ Next Steps
 
 * [Templates](templates.md) — build rich wiki content with Jinja2
 * [Flask integration](flask.md) — serve graphs dynamically from a web app

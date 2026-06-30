@@ -2,7 +2,7 @@
 
 Control the visual appearance of nodes and edges with `NodeStyle` and `EdgeStyle` dataclasses, applied per-element through callbacks.
 
-## NodeStyle
+## ⚛️ NodeStyle
 
 ```python
 from network_wiki import NodeStyle, NodeFont, NodeColor
@@ -29,7 +29,7 @@ NodeStyle(color=NodeColor(
 ))
 ```
 
-## EdgeStyle
+## 🔗 EdgeStyle
 
 ```python
 from network_wiki import EdgeStyle, EdgeArrows
@@ -43,7 +43,7 @@ EdgeStyle(
 )
 ```
 
-## Applying Styles per Element
+## 🖌️ Applying Styles per Element
 
 Pass callbacks to the constructor, or set them after construction:
 
@@ -64,7 +64,7 @@ exporter.set_edge_style_callback(lambda e: EdgeStyle(width=2))
 
 Constructor arguments and setter calls write to the same internal callback — whichever happens last wins if you do both. In practice, pick one style and stick with it.
 
-## Fallback Styles
+## 🛟 Fallback Styles
 
 When no callback is registered, `default_node_style` / `default_edge_style` apply to every element:
 
@@ -78,7 +78,7 @@ exporter = GraphExporter(
 )
 ```
 
-## Full vis.js Property Passthrough
+## ⚡ Full vis.js Property Passthrough
 
 Any vis.js node/edge property not modeled explicitly can be set via the `extra` field, which is merged into the generated dict last:
 

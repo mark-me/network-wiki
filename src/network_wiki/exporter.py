@@ -278,6 +278,8 @@ class GraphExporter:
             edge_wiki_json=json.dumps(edge_wiki_js, ensure_ascii=False),
             has_edge_wiki=bool(edge_wiki_map),
             layout_json=json.dumps(self.layout.to_vis(), ensure_ascii=False),
+            min_zoom=self.layout.min_zoom,
+            max_zoom=self.layout.max_zoom,
         )
 
     def render_html(self, template: str = "page.html.j2") -> str:

@@ -172,10 +172,9 @@ class LayoutConfig:
                 "keyboard": self.keyboard_navigation,
                 "zoomSpeed": self.zoom_speed,
                 "zoomView": True,
-                "minZoom": self.min_zoom,
-                "maxZoom": self.max_zoom,
             },
         }
+
         if self.hierarchical:
             cfg["layout"] = {
                 "hierarchical": {
@@ -188,6 +187,7 @@ class LayoutConfig:
             }
             # Physics and hierarchical layout are mutually exclusive in vis.js.
             cfg["physics"]["enabled"] = False
+
         return cfg
 
 

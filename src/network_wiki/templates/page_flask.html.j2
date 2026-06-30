@@ -198,7 +198,9 @@
 </div>
 
 {# ── Graph canvas ─────────────────────────────────────────────────────────── #}
-<div id="nw-graph-container"></div>
+<div id="nw-graph-container"
+     data-nw-min-zoom="{{ min_zoom }}"
+     data-nw-max-zoom="{{ max_zoom }}"></div>
 
 {# ── Side panel ───────────────────────────────────────────────────────────── #}
 <div id="nw-wiki-panel">
@@ -237,7 +239,6 @@
 {# ── Bootstrap JS ─────────────────────────────────────────────────────────── #}
 <script
   src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-  integrity="sha384-YvpcrYf0tY3lHB60NNkmXc4s9bIOgUxi8T/jzmHN9e0b6h4hm6S1oG2CzXqJJnn2X"
   crossorigin="anonymous"
 ></script>
 
@@ -354,8 +355,18 @@ function activeScheme() {
 }
 function applyScheme(scheme) {
   document.documentElement.setAttribute("data-bs-theme", scheme);
-  document.getElementById("nw-scheme-icon").className =
-    "bi " + (ICONS[scheme] || "bi-circle-half");
+
+  const iconElement = document.getElementById("nw-scheme-icon");
+  if (iconElement) {
+    iconElement.className = "bi " + (ICONS[scheme] || "bi-circle-half");
+  }
+}
+const schemeBtn = document.getElementById("nw-scheme-btn");
+if (schemeBtn) {
+  schemeBtn.onclick = toggleScheme;
+} else {
+  // Button doesn't exist (Bootswatch theme), hide any references to it
+  console.debug("Light/dark toggle hidden: Bootswatch theme in use");
 }
 function toggleScheme() {
   const next = activeScheme() === "light" ? "dark" : "light";

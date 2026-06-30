@@ -210,7 +210,7 @@ def edge_wiki(e) -> WikiContent:
 exporter = GraphExporter(
     g,
     title="Midnight Echoes — Album Production Team",
-    theme=ThemeConfig(),
+    theme=ThemeConfig(bootswatch_theme="darkly"),
     layout=LayoutConfig(
         hierarchical=True,
         hierarchical_direction="UD",

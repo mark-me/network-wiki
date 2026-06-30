@@ -266,6 +266,8 @@ def test_graph_view_raises_import_error_when_flask_unavailable(monkeypatch):
 # ---------------------------------------------------------------------------
 
 def test_flask_toggle_hidden_when_bootswatch_active(simple_graph):
+    """See test_exporter.py::test_toggle_hidden_when_bootswatch_theme_active
+    for why this checks the rendered element rather than the bare id."""
     from flask import Flask
     app = Flask(__name__)
     app.config["TESTING"] = True
@@ -275,7 +277,7 @@ def test_flask_toggle_hidden_when_bootswatch_active(simple_graph):
     view.register(app)
 
     html = app.test_client().get("/g/d/").data.decode()
-    assert "nw-scheme-btn" not in html
+    assert 'id="nw-scheme-btn"' not in html
 
 
 def test_flask_toggle_visible_for_plain_bootstrap(simple_graph):

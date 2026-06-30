@@ -1,0 +1,234 @@
+{#
+  base_network.html.j2 — Common base for network-wiki HTML pages
+  ================================================================
+  Contains: Bootstrap setup, CSS styles, side-panel structure, modal,
+            click handlers, theme toggle, and vis.js network initialization.
+
+  Child templates must define:
+    - {%- block head_extra %}{% endblock %}  # Optional additional <head> content
+    - {%- block toolbar_buttons %}{% endblock %}  # Additional toolbar buttons
+    - {%- block graph_data_setup %}{% endblock %}  # Data source / initialization
+#}
+
+{% set default_min_zoom = min_zoom | default(0.1) | float %}
+{% set default_max_zoom = max_zoom | default(10.0) | float %}
+
+<!DOCTYPE html>
+<html lang="{{ lang }}" data-bs-theme="{{ base_scheme }}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }}</title>
+
+  <link id="nw-bs-css" href="{{ css_url }}" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.9/standalone/umd/vis-network.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.9/dist/purify.min.js"></script>
+
+  <style>
+    :root {
+      --nw-accent: {{ accent_color }};
+      --nw-panel-width: {{ panel_width }}px;
+    }
+
+    html, body { height: 100%; overflow: hidden; }
+
+    #nw-graph-container {
+      position: fixed; inset: 0; padding-top: 44px; transition: right 0.3s ease;
+    }
+    #nw-graph-container.panel-open { right: var(--nw-panel-width); }
+
+    #nw-toolbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 50; height: 44px;
+      background: color-mix(in srgb, var(--bs-body-bg) 88%, transparent);
+      backdrop-filter: blur(6px); border-bottom: 1px solid var(--bs-border-color);
+      padding: 0 14px; display: flex; align-items: center; gap: 8px;
+    }
+    .nw-title { font-weight: 600; font-size: 0.95rem; margin-right: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    #nw-wiki-panel {
+      position: fixed; top: 0; right: 0; width: var(--nw-panel-width); height: 100vh; z-index: 100;
+      display: flex; flex-direction: column; transform: translateX(100%); transition: transform 0.3s ease;
+      border-left: 1px solid var(--bs-border-color); background: var(--bs-body-bg); box-shadow: -4px 0 24px rgba(0,0,0,.15);
+    }
+    #nw-wiki-panel.open { transform: translateX(0); }
+
+    #nw-panel-header { flex-shrink: 0; padding: 10px 14px; border-bottom: 1px solid var(--bs-border-color); background: var(--bs-tertiary-bg); display: flex; align-items: center; gap: 8px; }
+    #nw-panel-title { flex: 1; font-weight: 600; font-size: 1rem; color: var(--nw-accent); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #nw-panel-body { flex: 1; overflow-y: auto; padding: 16px; }
+
+    .nw-node-type { font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--bs-secondary-color); margin-bottom: 6px; }
+    .nw-node-desc { font-size: .9rem; line-height: 1.6; margin-bottom: 12px; }
+    .nw-attr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .nw-attr-box { background: var(--bs-tertiary-bg); border-radius: 6px; padding: 8px 10px; border: 1px solid var(--bs-border-color); }
+    .nw-attr-label { font-size: .65rem; text-transform: uppercase; letter-spacing: .05em; color: var(--bs-secondary-color); }
+    .nw-attr-value { font-size: .95rem; font-weight: 600; }
+    .nw-connections { font-size: .85rem; color: var(--bs-secondary-color); }
+    .nw-connections strong { color: var(--nw-accent); }
+
+    .nw-wiki-body h2 { color: var(--nw-accent); margin-top: 1.2rem; }
+    .nw-wiki-body h3 { color: var(--bs-secondary-color); margin-top: 1rem; }
+    .nw-modal-title { color: var(--nw-accent); }
+
+    {% block extra_styles %}{% endblock %}
+  </style>
+
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+
+{% block loading_overlay %}{% endblock %}
+
+{# ── Toolbar ─────────────────────────────────────────────────────────────── #}
+<div id="nw-toolbar">
+  <span class="nw-title">{% block toolbar_title %}{{ title }}{% endblock %}</span>
+  {% block toolbar_extra %}{% endblock %}
+
+  {% if not bootswatch_theme %}
+  <button class="btn btn-sm btn-outline-secondary" id="nw-scheme-btn" title="Toggle light / dark" onclick="toggleScheme()">
+    <i class="bi bi-circle-half" id="nw-scheme-icon"></i>
+  </button>
+  {% endif %}
+</div>
+
+{# ── Graph canvas ─────────────────────────────────────────────────────────── #}
+<div id="nw-graph-container" data-nw-min-zoom="{{ default_min_zoom }}" data-nw-max-zoom="{{ default_max_zoom }}"></div>
+
+{# ── Side panel ───────────────────────────────────────────────────────────── #}
+<div id="nw-wiki-panel">
+  <div id="nw-panel-header">
+    <span id="nw-panel-title">—</span>
+    <button class="btn btn-sm btn-outline-primary" id="nw-btn-full-wiki" onclick="openFullWiki()" style="display:none;">
+      <i class="bi bi-book"></i> Wiki
+    </button>
+    <button class="btn btn-sm btn-outline-secondary" onclick="closePanel()" title="Close"><i class="bi bi-x-lg"></i></button>
+  </div>
+  <div id="nw-panel-body" class="nw-wiki-body"></div>
+</div>
+
+{# ── Full-wiki modal ───────────────────────────────────────────────────────── #}
+<div class="modal fade" id="nw-wiki-modal" tabindex="-1" aria-labelledby="nw-wiki-modal-label" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title nw-modal-title" id="nw-wiki-modal-label">Wiki</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body nw-wiki-body" id="nw-wiki-modal-body"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+
+<script>
+// ── Bootstrap JS loaded above ────────────────────────────────────────────────
+const LAYOUT_CFG = {{ layout_json }};
+const BASE_SCHEME = "{{ base_scheme }}";
+
+// ── vis.js datasets — created FIRST, before any child code uses them ──────────
+const nodeDataset = new vis.DataSet([]);
+const edgeDataset = new vis.DataSet([]);
+
+// ── vis.js network — created after datasets ───────────────────────────────────
+const network = new vis.Network(
+  document.getElementById("nw-graph-container"),
+  { nodes: nodeDataset, edges: edgeDataset },
+  LAYOUT_CFG
+);
+
+// ── Wiki state — declare as empty placeholders ─────────────────────────────────
+let NODE_WIKI = {};
+let EDGE_WIKI = {};
+let HAS_EDGE_WIKI = false;
+let currentWikiData = null;
+const bsModal = new bootstrap.Modal(document.getElementById("nw-wiki-modal"));
+
+// ── Child template hook for data injection ────────────────────────────────────
+{% block graph_data_config %}{% endblock %}
+
+// ── Click handling ────────────────────────────────────────────────────────────
+network.on("click", params => {
+  if (params.nodes.length > 0) { openPanel(NODE_WIKI[params.nodes[0]]); }
+  else if (params.edges.length > 0 && HAS_EDGE_WIKI) { openPanel(EDGE_WIKI[params.edges[0]]); }
+  else { closePanel(); }
+});
+
+function openPanel(data) {
+  if (!data) return;
+  currentWikiData = data;
+  document.getElementById("nw-panel-title").textContent = data.label;
+  const sanitizedMini = window.DOMPurify
+    ? window.DOMPurify.sanitize(data.mini || "<em class='text-secondary'>No wiki content available.</em>")
+    : (data.mini || "<em class='text-secondary'>No wiki content available.</em>");
+
+  document.getElementById("nw-panel-body").innerHTML = sanitizedMini;
+
+  document.getElementById("nw-btn-full-wiki").style.display = data.full ? "" : "none";
+  document.getElementById("nw-wiki-panel").classList.add("open");
+  document.getElementById("nw-graph-container").classList.add("panel-open");
+}
+
+function closePanel() {
+  document.getElementById("nw-wiki-panel").classList.remove("open");
+  document.getElementById("nw-graph-container").classList.remove("panel-open");
+  currentWikiData = null;
+}
+
+function openFullWiki() {
+  if (!currentWikiData?.full) return;
+  document.getElementById("nw-wiki-modal-label").textContent = currentWikiData.label;
+  const sanitizedFull = window.DOMPurify
+    ? window.DOMPurify.sanitize(currentWikiData.full, {
+        USE_PROFILES: { html: true },
+        ALLOWED_TAGS: ['b','i','u','strong','em','a','p','br','ul','ol','li','code','pre','h1','h2','h3','table','thead','tbody','tr','th','td'],
+        ADD_ATTR: ['target']
+      })
+    : currentWikiData.full;
+
+  document.getElementById("nw-wiki-modal-body").innerHTML = sanitizedFull;
+  bsModal.show();
+}
+
+document.addEventListener("keydown", e => { if (e.key === "Escape") { bsModal.hide(); closePanel(); } });
+
+// ── Light / dark scheme toggle ────────────────────────────────────────────────
+const SCHEME_KEY = "nw-scheme";
+const ICONS = { light: "bi-sun-fill", dark: "bi-moon-fill" };
+
+function osPrefers() { return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"; }
+function activeScheme() { return localStorage.getItem(SCHEME_KEY) || osPrefers(); }
+
+function applyScheme(scheme) {
+  document.documentElement.setAttribute("data-bs-theme", scheme);
+  const iconElement = document.getElementById("nw-scheme-icon");
+  if (iconElement) { iconElement.className = "bi " + (ICONS[scheme] || "bi-circle-half"); }
+}
+
+const schemeBtn = document.getElementById("nw-scheme-btn");
+if (schemeBtn) { schemeBtn.onclick = toggleScheme; }
+
+function toggleScheme() {
+  const next = activeScheme() === "light" ? "dark" : "light";
+  localStorage.setItem(SCHEME_KEY, next);
+  applyScheme(next);
+}
+
+applyScheme(activeScheme());
+window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!localStorage.getItem(SCHEME_KEY)) applyScheme(osPrefers()); });
+
+// ── Zoom bounds enforcement ───────────────────────────────────────────────────
+const minZoom = parseFloat(document.getElementById("nw-graph-container").dataset.nwMinZoom) || 0.1;
+const maxZoom = parseFloat(document.getElementById("nw-graph-container").dataset.nwMaxZoom) || 10.0;
+
+network.on("zoom", function(params) {
+  if (params.scale < minZoom || params.scale > maxZoom) {
+    params.scale = Math.min(Math.max(params.scale, minZoom), maxZoom);
+    network.fit({ duration: 100, scale: params.scale });
+  }
+});
+
+{% block script_extra %}{% endblock %}
+</script>
+</body>
+</html>

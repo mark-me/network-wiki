@@ -58,6 +58,9 @@ import json
 from typing import Callable, Union
 
 from jinja2 import Environment, FileSystemLoader
+from markupsafe import Markup
+
+from .json_safe import serialize_json
 
 from .exporter import GraphExporter
 from .layout import ThemeConfig
@@ -189,7 +192,7 @@ class GraphView:
         """Render the page_flask.html.j2 shell (no inline graph data)."""
         t = exporter.theme
         tmpl_path = _pkg_res.files("network_wiki").joinpath("templates")
-        env = Environment(loader=FileSystemLoader(str(tmpl_path)))
+        env = Environment(loader=FileSystemLoader(str(tmpl_path)), autoescape=True)
         return env.get_template("page_flask.html.j2").render(
             title=exporter.title,
             css_url=t.css_url,
@@ -198,7 +201,9 @@ class GraphView:
             base_scheme=t.base_scheme,
             bootswatch_theme=t.bootswatch_theme,
             lang=t.lang,
-            layout_json=json.dumps(exporter.layout.to_vis(), ensure_ascii=False),
+            # Markup() keeps this pre-validated JSON safe from autoescape's
+            # HTML-entity-escaping — see the matching comment in exporter.py.
+            layout_json=Markup(serialize_json(exporter.layout.to_vis())),
             data_url=f"{self._url_prefix}/{active_name}/data",
             graphs=self._graph_list(active_name),
         )

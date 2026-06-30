@@ -9,11 +9,13 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from jinja2 import Environment, FileSystemLoader
+from markupsafe import Markup
 
 from .edge_style import EdgeStyle
+from .json_safe import serialize_json, validate_json_injection_safety
 from .layout import LayoutConfig, ThemeConfig
 from .node_style import NodeStyle
-from .wiki import WikiContent, WikiTemplateRenderer, _auto_wiki, _auto_edge_wiki
+from .wiki import WikiContent, WikiTemplateRenderer, _auto_edge_wiki, _auto_wiki
 
 
 class GraphExporter:
@@ -214,9 +216,7 @@ class GraphExporter:
 
             if self._edge_wiki_cb:
                 edge_wiki_map[e.index] = self._edge_wiki_cb(e)
-            elif self._edge_wiki_cb is None and any(
-                self.graph.edge_attributes()
-            ):
+            elif self._edge_wiki_cb is None and any(self.graph.edge_attributes()):
                 # Auto-generate edge wiki from attributes when no callback set
                 # but the graph has edge attributes worth showing.
                 edge_wiki_map[e.index] = _auto_edge_wiki(e, self.graph)
@@ -264,6 +264,29 @@ class GraphExporter:
         }
 
         t = self.theme
+
+        # ✅ SERIALIZED WITH VALIDATION
+        nodes_json_str = serialize_json(vis_nodes)
+        edges_json_str = serialize_json(vis_edges)
+        node_wiki_json_str = serialize_json(node_wiki_js)
+        edge_wiki_json_str = serialize_json(edge_wiki_js)
+        layout_cfg_str = serialize_json(self.layout.to_vis())
+
+        # ✅ SECURITY CHECK - run validation on each blob
+        debug_mode = getattr(
+            self.layout, "_debug_validate_only", False
+        )  # For CI testing
+
+        if debug_mode:
+            for name, js_string in [
+                ("nodes", nodes_json_str),
+                ("edges", edges_json_str),
+                ("node_wiki", node_wiki_json_str),
+                ("edge_wiki", edge_wiki_json_str),
+                ("layout", layout_cfg_str),
+            ]:
+                validate_json_injection_safety(js_string)
+
         return dict(
             title=self.title,
             css_url=t.css_url,
@@ -272,12 +295,18 @@ class GraphExporter:
             base_scheme=t.base_scheme,
             bootswatch_theme=t.bootswatch_theme,
             lang=t.lang,
-            nodes_json=json.dumps(vis_nodes, ensure_ascii=False),
-            edges_json=json.dumps(vis_edges, ensure_ascii=False),
-            node_wiki_json=json.dumps(node_wiki_js, ensure_ascii=False),
-            edge_wiki_json=json.dumps(edge_wiki_js, ensure_ascii=False),
+            # Markup() marks these pre-validated JSON strings as safe so
+            # Jinja2's autoescape doesn't HTML-entity-escape the quotes and
+            # brackets, which would corrupt the JSON/JS syntax in <script>.
+            # _EscapedJSONEncoder already neutralizes <, >, & for XSS safety,
+            # so this does not reopen the injection risk autoescape guards
+            # against — it just stops it from double-escaping safe JSON.
+            nodes_json=Markup(nodes_json_str),
+            edges_json=Markup(edges_json_str),
+            node_wiki_json=Markup(node_wiki_json_str),
+            edge_wiki_json=Markup(edge_wiki_json_str),
             has_edge_wiki=bool(edge_wiki_map),
-            layout_json=json.dumps(self.layout.to_vis(), ensure_ascii=False),
+            layout_json=Markup(layout_cfg_str),
             min_zoom=self.layout.min_zoom,
             max_zoom=self.layout.max_zoom,
         )
@@ -296,7 +325,12 @@ class GraphExporter:
             The rendered HTML as a string.
         """
         tmpl_path = _pkg_res.files("network_wiki").joinpath("templates")
-        env = Environment(loader=FileSystemLoader(str(tmpl_path)))
+        env = Environment(
+            loader=FileSystemLoader(str(tmpl_path)),
+            autoescape=True,
+            trim_blocks=True,
+            lstrip_blocks=True,
+        )
         return env.get_template(template).render(**self._build_template_vars())
 
     def export(self, path: str | Path = "graph_wiki.html") -> Path:

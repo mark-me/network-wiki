@@ -1,5 +1,9 @@
 {% extends "base_network.html.j2" %}
 
+{% block toolbar_extra %}
+<button class="btn btn-sm btn-outline-secondary" title="Fit graph in view" onclick="network.fit()"><i class="bi bi-fullscreen"></i></button>
+{% endblock %}
+
 {% block graph_data_config %}
 NODE_WIKI = {{ node_wiki_json }};
 EDGE_WIKI = {{ edge_wiki_json }};

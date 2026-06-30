@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Callable, Optional
 
 from jinja2 import Environment, FileSystemLoader
+from markupsafe import Markup
 
 from .edge_style import EdgeStyle
 from .json_safe import serialize_json, validate_json_injection_safety
@@ -294,12 +295,18 @@ class GraphExporter:
             base_scheme=t.base_scheme,
             bootswatch_theme=t.bootswatch_theme,
             lang=t.lang,
-            nodes_json=json.dumps(vis_nodes, ensure_ascii=False),
-            edges_json=json.dumps(vis_edges, ensure_ascii=False),
-            node_wiki_json=json.dumps(node_wiki_js, ensure_ascii=False),
-            edge_wiki_json=json.dumps(edge_wiki_js, ensure_ascii=False),
+            # Markup() marks these pre-validated JSON strings as safe so
+            # Jinja2's autoescape doesn't HTML-entity-escape the quotes and
+            # brackets, which would corrupt the JSON/JS syntax in <script>.
+            # _EscapedJSONEncoder already neutralizes <, >, & for XSS safety,
+            # so this does not reopen the injection risk autoescape guards
+            # against — it just stops it from double-escaping safe JSON.
+            nodes_json=Markup(nodes_json_str),
+            edges_json=Markup(edges_json_str),
+            node_wiki_json=Markup(node_wiki_json_str),
+            edge_wiki_json=Markup(edge_wiki_json_str),
             has_edge_wiki=bool(edge_wiki_map),
-            layout_json=json.dumps(self.layout.to_vis(), ensure_ascii=False),
+            layout_json=Markup(layout_cfg_str),
             min_zoom=self.layout.min_zoom,
             max_zoom=self.layout.max_zoom,
         )

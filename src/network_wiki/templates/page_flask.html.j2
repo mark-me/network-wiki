@@ -1,5 +1,13 @@
 {% extends "base_network.html.j2" %}
 
+{% block loading_overlay %}
+<div id="nw-loading">
+  <div class="spinner-border text-secondary" role="status">
+    <span class="visually-hidden">Loading…</span>
+  </div>
+</div>
+{% endblock %}
+
 {% block toolbar_extra %}
 {% if graphs | length > 1 %}
 <select class="form-select form-select-sm" id="nw-graph-picker" onchange="loadGraph(this.value)" title="Switch graph">
@@ -59,7 +67,8 @@ async function loadGraph(dataUrl) {
 }
 
 function showLoading(visible) {
-  document.getElementById("nw-loading").classList.toggle("visible", visible);
+  const el = document.getElementById("nw-loading");
+  if (el) el.classList.toggle("visible", visible);
 }
 
 loadGraph(INITIAL_URL);

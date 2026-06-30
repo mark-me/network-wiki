@@ -198,4 +198,4 @@ exporter = GraphExporter(
     wiki_renderer=renderer,
 )
 
-exporter.export("ecommerce_architecture.html")
+exporter.export("examples/ecommerce_architecture.html")

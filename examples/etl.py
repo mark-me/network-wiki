@@ -116,4 +116,4 @@ exporter = GraphExporter(
     wiki_renderer=renderer,
 )
 
-exporter.export("etl_landscape.html")
+exporter.export("examples/etl_landscape.html")

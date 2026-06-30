@@ -1,45 +1,37 @@
 # network-wiki
 
-Generate interactive standalone HTML graph visualisations from [igraph](https://igraph.org) graphs, with expandable per-node and per-edge wiki panels, [Bootstrap 5](https://getbootstrap.com) / [Bootswatch](https://bootswatch.com) theming, and [Jinja2](https://jinja.palletsprojects.com/) templates.
+[![CI](https://github.com/mark-me/network-wiki/actions/workflows/ci.yml/badge.svg)](https://github.com/mark-me/network-wiki/actions/workflows/ci.yml)
+[![Documentation](https://github.com/mark-me/network-wiki/actions/workflows/docs.yml/badge.svg)](https://mark-me.github.io/network-wiki/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-- Click a node or edge → side panel opens with a compact wiki
-- Click **Wiki** → full-screen modal with your Jinja2-rendered page
-- User toggles light / dark mode; preference persists in `localStorage` and defaults to the OS setting
-- Works as a **static HTML file** or inside a **Flask application**
+Turn an [igraph](https://igraph.org) graph into an interactive HTML page where every node and edge has its own wiki page.
 
----
+## Why
 
-## 📥 Installation
+You already have the graph — a pipeline, an org chart, a service topology, a network diagram. `network-wiki` turns it into something people can click around in: a force-directed layout where each node opens a side panel, and a full wiki page if there's more to say. No frontend code required.
 
-### pip
+- 📊 Interactive graphs powered by [vis.js](https://visjs.org/)
+- 📖 Per-node and per-edge wikis — compact side panel + full-screen modal
+- 🎨 25 [Bootswatch](https://bootswatch.com) themes, or plain Bootstrap with a user-toggleable light/dark mode
+- 🖌️ Style every node and edge individually via simple callbacks
+- 📝 Jinja2 templates for rich wiki content, with sensible auto-generated fallbacks
+- 🌶️ Optional Flask integration — serve multiple graphs, swap them client-side, or rebuild from live data on every request
+- 📦 Works as a single static HTML file with zero server required
+
+## Install
 
 ```bash
-# Core package (static HTML export)
-pip install network-wiki
-
-# With Flask integration
-pip install "network-wiki[flask]"
-
-# Directly from GitHub
 pip install git+https://github.com/mark-me/network-wiki.git
+# or, with Flask support:
+pip install "network-wiki[flask] @ git+https://github.com/mark-me/network-wiki.git"
 ```
 
-### uv
-
 ```bash
-# Core package
-uv add network-wiki
-
-# With Flask integration
-uv add "network-wiki[flask]"
-
-# Directly from GitHub
+# uv
 uv add git+https://github.com/mark-me/network-wiki.git
 ```
 
----
-
-## 🗿 Quickstart — static HTML
+## Quickstart
 
 ```python
 import igraph as ig
@@ -48,304 +40,37 @@ from network_wiki import GraphExporter, ThemeConfig
 g = ig.Graph(directed=True)
 g.add_vertices(3)
 g.vs["name"] = ["Source", "Pipeline", "Target"]
-g.vs["type"] = ["source", "pipeline", "target"]
 g.add_edges([(0, 1), (1, 2)])
 
-exporter = GraphExporter(
-    g,
-    title="My Graph",
-    theme=ThemeConfig(bootswatch_theme="flatly"),
-)
+exporter = GraphExporter(g, title="My Graph", theme=ThemeConfig(bootswatch_theme="flatly"))
 exporter.export("graph.html")
 ```
 
-Open `graph.html` in any browser — no server required.
+Open `graph.html` — that's it, no server needed. Click a node to see its wiki.
 
----
-
-## 💫 Quickstart — Flask
-
-Serve one or more graphs as interactive web pages. The graph can be replaced in the browser without a full page reload.
+Want it served dynamically instead? Three more lines with Flask:
 
 ```python
 from flask import Flask
-from network_wiki import GraphExporter, ThemeConfig
 from network_wiki.flask_view import GraphView
-import igraph as ig
 
 app = Flask(__name__)
-
-g = ig.Graph(directed=True)
-g.add_vertices(3)
-g.vs["name"] = ["Source", "Pipeline", "Target"]
-g.add_edges([(0, 1), (1, 2)])
-
-exporter = GraphExporter(
-    g,
-    title="My Graph",
-    theme=ThemeConfig(bootswatch_theme="flatly"),
-)
-
-view = GraphView(exporter, url_prefix="/graph")
-view.register(app)
-
-if __name__ == "__main__":
-    app.run(debug=True)
+GraphView(exporter, url_prefix="/graph").register(app)
 ```
 
-| URL | Description |
-| --- | ----------- |
-| `GET /graph/` | Interactive page (HTML shell) |
-| `GET /graph/default/data` | Graph data as JSON (fetched by the page) |
+## Documentation
 
-### Multiple graphs with a picker
+The README stops here on purpose — everything else lives in the docs:
 
-Register several exporters under one `GraphView`. The toolbar shows a dropdown that switches graphs in place — no page reload.
+**📚 [mark-me.github.io/network-wiki](https://mark-me.github.io/network-wiki/)**
 
-```python
-view = GraphView(url_prefix="/graphs")
-view.add("etl",    etl_exporter,    title="ETL Pipeline")
-view.add("schema", schema_exporter, title="DB Schema")
-view.register(app)
-# http://localhost:5000/graphs/etl/
-# http://localhost:5000/graphs/schema/
-```
+- [Tutorial](https://mark-me.github.io/network-wiki/tutorial/) — installation through Flask deployment, step by step
+- [User Guide](https://mark-me.github.io/network-wiki/user-guide/) — node/edge styling, Jinja2 templates, themes, layout config
+- [Developer Guide](https://mark-me.github.io/network-wiki/developer/) — architecture, rendering pipeline, contributing
 
-### Dynamic graphs
+Runnable examples covering every feature, including a full org-chart with mixed wiki strategies, live in [`examples/`](examples/).
 
-Pass a factory function instead of an exporter. It is called on every request, which is useful when the graph is rebuilt from a database or API.
-
-```python
-def build_live_graph() -> GraphExporter:
-    g = fetch_graph_from_db()
-    return GraphExporter(g, title="Live Graph")
-
-view = GraphView(url_prefix="/live")
-view.add("live", build_live_graph, title="Live")
-view.register(app)
-```
-
----
-
-## 🖌️ Node and edge styling
-
-Pass a callback that returns a `NodeStyle` or `EdgeStyle` per vertex / edge:
-
-```python
-from network_wiki import NodeStyle, NodeFont, EdgeStyle, EdgeArrows
-
-COLOR_MAP = {"source": "#4a90d9", "pipeline": "#e94560", "target": "#f5a623"}
-
-exporter = GraphExporter(
-    g,
-    node_style_callback=lambda v: NodeStyle(
-        shape="diamond" if v["type"] == "pipeline" else "box",
-        color=COLOR_MAP.get(v["type"], "#888"),
-        font=NodeFont(color="#ffffff", bold=True),
-        tooltip=f"{v['name']} — {v['type']}",
-    ),
-    edge_style_callback=lambda e: EdgeStyle(
-        width=2,
-        dashes=not e["critical"],
-        arrows=EdgeArrows(to_enabled=True),
-    ),
-)
-```
-
-Callbacks can also be set after construction:
-
-```python
-exporter.set_node_style_callback(lambda v: NodeStyle(color="#2ecc71"))
-exporter.set_edge_style_callback(lambda e: EdgeStyle(width=3))
-```
-
----
-
-## 📚 Wiki content via Jinja2 templates
-
-### Option A — template files
-
-```python
-from network_wiki import WikiTemplateRenderer
-
-renderer = WikiTemplateRenderer(
-    template_dir="my_templates/",
-    mini_template_file="mini.html.j2",   # compact side-panel view
-    full_template_file="full.html.j2",   # full-screen modal view
-    # Per-type overrides (dispatched on type_attr, default "type"):
-    full_template_files_by_type={
-        "pipeline": "full_pipeline.html.j2",
-        "source":   "full_source.html.j2",
-    },
-    global_context={"project": "My Project"},
-)
-exporter = GraphExporter(g, wiki_renderer=renderer)
-```
-
-### Option B — inline strings
-
-```python
-renderer = WikiTemplateRenderer(
-    mini_template="""
-    <div class="nw-mini-wiki">
-      <div class="nw-node-type">{{ type_value }}</div>
-      <div class="nw-node-desc">{{ attrs.description }}</div>
-    </div>""",
-    full_template="""
-    <h2>{{ label }}</h2>
-    <p>{{ attrs.description }}</p>
-    <ul>{% for n in neighbours %}<li>{{ n }}</li>{% endfor %}</ul>
-    """,
-)
-```
-
-### Dispatch on any attribute
-
-`type_attr` controls which vertex attribute drives template selection. It does not have to be `"type"`:
-
-```python
-# Organisational chart — dispatch on "role"
-WikiTemplateRenderer(
-    type_attr="role",
-    full_templates_by_type={
-        "manager":  MANAGER_TMPL,
-        "engineer": ENGINEER_TMPL,
-    },
-)
-
-# Network topology — dispatch on "device_class"
-WikiTemplateRenderer(
-    type_attr="device_class",
-    full_template_files_by_type={
-        "router": "router.html.j2",
-        "switch": "switch.html.j2",
-    },
-)
-```
-
-### Template variables
-
-| Variable | Type | Description |
-| -------- | ---- | ----------- |
-| `v` | `igraph.Vertex` | The vertex object |
-| `attrs` | `dict` | All vertex attributes `{name: value}` |
-| `label` | `str` | Display name |
-| `type_value` | `str` | Value of the `type_attr` attribute, or `""` |
-| `index` | `int` | Vertex index |
-| `n_in` | `int` | Number of incoming edges |
-| `n_out` | `int` | Number of outgoing edges |
-| `neighbours` | `list[str]` | Names of neighbouring nodes |
-| `graph` | `igraph.Graph` | The full graph |
-| `...` | | Anything passed via `global_context` |
-
-### Template resolution order
-
-For each node, the first matching template wins:
-
-1. Per-type file (`full_template_files_by_type`)
-2. Per-type inline (`full_templates_by_type`)
-3. Default file (`full_template_file`)
-4. Default inline (`full_template`)
-5. Built-in package fallback (`full_default.html.j2`)
-
-The built-in fallbacks render all vertex attributes as a table — no configuration needed.
-
-### Edge wikis
-
-Edges get the same side-panel / full-modal treatment as nodes. Edge wikis are
-set via a plain Python callback rather than a template renderer — usually
-simpler since edge content tends to be short:
-
-```python
-from network_wiki import WikiContent
-
-def edge_wiki(e) -> WikiContent:
-    return WikiContent(
-        mini_html=f"<p>{e['relationship']} since {e['since']}</p>",
-        full_html=f"<h2>{e['relationship']}</h2><p>Since {e['since']}</p>",
-    )
-
-exporter = GraphExporter(g, edge_wiki_callback=edge_wiki)
-```
-
-### Full example
-
-[`examples/example_wiki_content.py`](examples/example_wiki_content.py) builds
-a small org chart and demonstrates every wiki mechanism side by side:
-per-type template **files**, per-type **inline** templates, the **automatic
-fallback** for untemplated types, and an **edge wiki callback** — all on one
-graph, so you can compare the approaches directly.
-
-```bash
-python examples/example_wiki_content.py
-# → examples/org_chart_wiki.html
-```
-
----
-
-## 🎨 Theming
-
-```python
-from network_wiki import ThemeConfig
-
-# Bootswatch theme (developer-chosen at export time)
-ThemeConfig(bootswatch_theme="flatly")   # light theme
-ThemeConfig(bootswatch_theme="darkly")   # dark theme
-ThemeConfig(bootswatch_theme="minty", accent_color="#2ecc71")
-
-# Plain Bootstrap (no Bootswatch)
-ThemeConfig()
-```
-
-The end-user can toggle light / dark mode with the toolbar button. Their choice is saved in `localStorage` and falls back to the OS `prefers-color-scheme` setting on first load.
-
-> **Note:** the toggle is only shown when no Bootswatch theme is set
-> (`ThemeConfig()` with `bootswatch_theme=None`). Bootswatch stylesheets are
-> built for a single fixed appearance and don't respond to Bootstrap's
-> `data-bs-theme` attribute, so the toggle would have no visible effect —
-> network-wiki hides it automatically in that case. If you want user-toggleable
-> light/dark mode, use plain Bootstrap and set `accent_color` for branding instead.
-
-**Available Bootswatch themes:**
-
-| Light | Dark |
-| ----- | ---- |
-| cerulean, cosmo, flatly, journal, litera, lumen, lux, materia, minty, morph, pulse, quartz, sandstone, simplex, sketchy, spacelab, united, yeti, zephyr | cyborg, darkly, slate, solar, superhero, vapor |
-
----
-
-## 🗺️ Layout
-
-```python
-from network_wiki import LayoutConfig
-
-LayoutConfig(
-    hierarchical=True,
-    hierarchical_direction="LR",   # left-to-right DAG; also "UD", "RL", "DU"
-)
-
-LayoutConfig(
-    solver="forceAtlas2Based",
-    gravity=-80,
-    spring_length=250,
-    navigation_buttons=True,
-)
-```
-
----
-
-## 🛠️ Development
-
-### pip
-
-```bash
-git clone https://github.com/mark-me/network-wiki.git
-cd network-wiki
-pip install -e ".[dev,flask]"
-pytest
-```
-
-### uv
+## Development
 
 ```bash
 git clone https://github.com/mark-me/network-wiki.git
@@ -354,8 +79,8 @@ uv sync --extra dev --extra flask
 uv run pytest
 ```
 
----
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the pip-based workflow and PR guidelines.
 
-## ⚖️ License
+## License
 
-MIT
+MIT — see [LICENSE](LICENSE).
